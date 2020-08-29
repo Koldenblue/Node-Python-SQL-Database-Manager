@@ -1,0 +1,23 @@
+{
+  "name": "database-manager",
+  "version": "1.0.0",
+  "description": "Content Management System for an employee database",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Koldenblue/database-manager.git"
+  },
+  "author": "Kevin Miller",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Koldenblue/database-manager/issues"
+  },
+  "homepage": "https://github.com/Koldenblue/database-manager#readme",
+  "dependencies": {
+    "inquirer": "^7.3.3",
+    "mysql": "^2.18.1"
+  }
+}
