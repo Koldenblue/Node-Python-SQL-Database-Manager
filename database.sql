@@ -14,6 +14,14 @@ CREATE TABLE role (
   id INT NOT NULL AUTO_INCREMENT,
   title VARCHAR(30) NOT NULL,
   salary DECIMAL NOT NULL,
+  department_id INT NOT NULL,
+  PRIMARY KEY (id),
+  FOREIGN KEY (department_id) REFERENCES department(id)
+);
+
+CREATE TABLE manager (
+  id INT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(60) NOT NULL,
   PRIMARY KEY (id)
 );
 
@@ -23,5 +31,13 @@ CREATE TABLE employee (
   last_name VARCHAR(30) NOT NULL,
   role_id INT NOT NULL,
   manager_id INT,
-  PRIMARY KEY (id)
+  PRIMARY KEY (id),
+  FOREIGN KEY (manager_id) REFERENCES manager(id),
+  FOREIGN KEY (role_id) REFERENCES role(id)
 );
+
+INSERT INTO department (name) VALUES ("water"), ("bouncehouses"), ("blankets");
+
+INSERT INTO role (title, salary) VALUES ("Chief Ice Thrower", 50000.50), ("Fire Starter", 40000.25), ("Suntanner", 10500);
+
+INSERT INTO employee (first_name, last_name, role_id, manager_id);

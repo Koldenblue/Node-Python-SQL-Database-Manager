@@ -32,6 +32,13 @@ function initAsk() {
 
 allRoles = [];
 
+function getAllRoles() {
+    connection.query("SELECT name FROM role", (err, data) => {
+        if (err) throw err;
+        
+    })
+}
+
 /** if a role already exists. If not, adds it to the allRoles array. */
 addToAllRoles = (role) => {
     let roleAlreadyPresent = false;
