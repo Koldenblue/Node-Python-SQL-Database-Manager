@@ -29,7 +29,31 @@ function initAsk() {
         console.log(answer);
         switch (answer.manageChoice) {
             case "View all employees by department":
-                viewEmployeesByDept();
+                viewEmployeesByDept().then(initAsk);
+                break;
+            case "View all employees by manager":
+                viewEmployeesByManager().then(initAsk);
+                break;
+            case "Add employee":
+                addEmployee().then(initAsk);
+                break;
+            case "Remove employee":
+                removeEmployee().then(initAsk);
+                break;
+            case "Update employee role":
+                updateEmpRole().then(initAsk);
+                break;
+            case "Update employee manager":
+                updateEmpManager().then(initAsk);
+                break;
+            case "View all roles":
+                getAllRoles().then(initAsk);
+                break;
+            case "Add role":
+                addToAllRoles().then(initAsk);  // TODO: update with params about role
+                break;
+            case "Remove role":
+                removeFromAllRoles().then(initAsk); // TODO: role params
                 break;
             case "Quit":
                 connection.end();
@@ -42,21 +66,63 @@ function initAsk() {
 }
 
 
-allRoles = [];
-
-
 function viewEmployeesByDept() {
-    connection.query("SELECT first_name, last_name, department.name FROM employee"
-        + " JOIN role ON employee.role_id = role.id"
-        + " JOIN department ON department.id = role.department_id;",
-        (err, data) => {
-            if (err) throw err;
-            console.log(data);
-        }
-    )
-    initAsk();
+    return new Promise(function(resolve, reject) {
+        connection.query("SELECT first_name, last_name, department.name FROM employee"
+            + " JOIN role ON employee.role_id = role.id"
+            + " JOIN department ON department.id = role.department_id;",
+            (err, data) => {
+                if (err) throw err;
+                console.log(data);
+                resolve();
+            }
+        )
+    })
 }
 
+function viewEmployeesByManager() {
+    return new Promise(function(resolve, reject) {
+        connection.query(
+            
+        )
+    })
+}
+
+function addEmployee() {
+    return new Promise(function(resolve, reject) {
+        connection.query(
+            
+        )
+    })
+}
+
+function removeEmployee() {
+    return new Promise(function(resolve, reject) {
+        connection.query(
+            
+        )
+    })
+}
+
+function updateEmpRole() {
+    return new Promise(function(resolve, reject) {
+        connection.query(
+            
+        )
+    })
+}
+
+
+function updateEmpManager() {
+    return new Promise(function(resolve, reject) {
+        connection.query(
+            
+        )
+    })
+}
+
+
+allRoles = [];
 
 function getAllRoles() {
     connection.query("SELECT name FROM role", (err, data) => {
@@ -65,8 +131,9 @@ function getAllRoles() {
     })
 }
 
+
 /** if a role already exists. If not, adds it to the allRoles array. */
-addToAllRoles = (role) => {
+let addToAllRoles = (role) => {
     let roleAlreadyPresent = false;
     for (let elem of this.allRoles) {
         console.log(elem);
@@ -79,7 +146,7 @@ addToAllRoles = (role) => {
 }
 
 /** Removes a role from the allRoles array. */
-removeFromAllRoles = (role) => {
+let removeFromAllRoles = (role) => {
     let foundRole = false;
     for (let i = 0, j = this.allRoles.length; i < j; i++) {
         if (this.allRoles[i] === role) {
