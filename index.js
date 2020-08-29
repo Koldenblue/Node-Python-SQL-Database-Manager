@@ -2,8 +2,8 @@ let { initQuestions, addEmpQuestions, updateQuestions } = require("./questions.j
 const inquirer = require("inquirer");
 const mysql = require("mysql");
 const util = require("util");
-const Role = require("Role_class.js");
-const Employee = require("Employee_class.js");
+const Role = require("./Role_class.js");
+const Employee = require("./Employee_class.js");
 
 let connection = mysql.createConnection({
     host: "localhost", 
@@ -12,7 +12,7 @@ let connection = mysql.createConnection({
 
     user:"root",
 
-    password: "",
+    password: "sqlpasskev",
     database: "employee_DB"
 });
 
@@ -20,22 +20,48 @@ connection.connect(function(err) {
     if (err) throw err;
     console.log("connected as id " + connection.threadId + "\n");
     initAsk();
-    connection.end();
+    // connection.end();
 });
 
 function initAsk() {
-    inquirer.prompt(initQuestions).then(function(answers) {
-        console.log(answers);
+    console.log(`\n=========================================\n`)
+    inquirer.prompt(initQuestions).then(function(answer) {
+        console.log(answer);
+        switch (answer.manageChoice) {
+            case "View all employees by department":
+                viewEmployeesByDept();
+                break;
+            case "Quit":
+                connection.end();
+                break;
+            default:
+                console.log("switch error!");
+                break;
+        }
     })
 }
 
 
 allRoles = [];
 
+
+function viewEmployeesByDept() {
+    connection.query("SELECT first_name, last_name, department.name FROM employee"
+        + " JOIN role ON employee.role_id = role.id"
+        + " JOIN department ON department.id = role.department_id;",
+        (err, data) => {
+            if (err) throw err;
+            console.log(data);
+        }
+    )
+    initAsk();
+}
+
+
 function getAllRoles() {
     connection.query("SELECT name FROM role", (err, data) => {
         if (err) throw err;
-        
+
     })
 }
 

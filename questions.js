@@ -5,7 +5,7 @@ const initQuestions = [
     name: "manageChoice",
     choices: ["View all employees by department", "View all employees by manager", "Add employee",
       "Remove employee", "Update employee role", "Update employee manager", "View all roles",
-      "Add role", "Remove role"]
+      "Add role", "Remove role", "Quit"]
   }
 ]
 
