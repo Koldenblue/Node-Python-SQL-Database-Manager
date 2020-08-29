@@ -22,8 +22,8 @@ let addEmpQuestions = [
   },
   {
     type: "input",
-    message: "What is the title of the employee?",
-    name: "title"
+    message: "What is the role of the employee?",
+    name: "role"
   },
   {
     type: "input",
