@@ -17,7 +17,7 @@ class Employee extends Role {
     getManager = () => this.manager;
 }
 
-let me = new Employee("k", "m", "manager", "sales", 80)
-console.log(me)
+// let me = new Employee("k", "m", "manager", "sales", 80)
+// console.log(me)
 
 module.exports = Employee;

@@ -49,10 +49,14 @@ let addEmpQuestions = [
 ]
 
 let getEmployeeName = [
+  // {
+  //   type: "list",
+  //   message: "Would you like to choose employee names from a list, or enter a name?",
+  //   choices: ["Choose employees from a list of names.", "Enter the name of an employee."]
+  // },
   {
-    type: "list",
-    message: "Would you like to choose employee names from a list, or enter a name?",
-    choices: ["Choose employees from a list of names.", "Enter the name of an employee."]
+    type: "input",
+    message: "What is the employee's first name?"
   }
 ]
 

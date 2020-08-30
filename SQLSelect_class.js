@@ -1,3 +1,5 @@
+const mysql = require("mysql");
+
 /** a class that contains functions for getting a particular list from the SQL database. */
 class SQLSelect {
     /** @param {string} choice
@@ -14,8 +16,15 @@ class SQLSelect {
     };
 
     createChoiceArray () {
-        connection.query("SELECT first_name, last_name, department.dept_name FROM employee")
+        let query = this.createSelectQuery();
+        let myConnection = connection.query(query, (err, data) => {
+            if (err) throw err;
+            console.log(data);
+
+        })
+        return myConnection;
     }
 }
 
 module.exports = SQLSelect;
+

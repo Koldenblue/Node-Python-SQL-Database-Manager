@@ -22,15 +22,30 @@ let connection = mysql.createConnection({
 connection.connect(function(err) {
     if (err) throw err;
     console.log("connected as id " + connection.threadId + "\n");
-    initAsk();
+    // initAsk();
     // connection.end();
 });
 
 
-let myQuery = new SQLSelect("first_name", "employee");
-console.log(myQuery)
-console.log(myQuery.createSelectQuery());
-console.log("disp")
+function createChoiceArray(choice, table) {
+    return new Promise(function(resolve, reject) {
+        let query = "SELECT " + choice + " FROM " + table;
+        connection.query(query, (err, data) => {
+            if (err) reject(err);
+            console.log(data);
+            console.log(data[0][choice])
+            choiceArray = [];
+            for (let i = 0, j = data.length; i < j; i++) {
+                choiceArray.push(data[i][choice]);
+            }
+            console.log(choiceArray)
+            resolve(choiceArray);
+        })
+    })
+}
+let arrayPromise = createChoiceArray("title", "role")
+arrayPromise.then((data) => console.log(data))
+
 
 function initAsk() {
     console.log(`\n=========================================\n`)
@@ -106,11 +121,8 @@ function viewEmployeesByManager() {
 
 function addEmployee() {
     return new Promise(function(resolve, reject) {
-        // first find manager - select manager names and offer choice
-        // or enter manager name
-
-        // then:
-        connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ",
+        let newEmployee = getEmployeeInfo();
+        connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ?",
 
             (err, data) => {
                 if (err) throw err;
@@ -118,6 +130,15 @@ function addEmployee() {
                 resolve();
             }
         )
+    })
+}
+
+function getEmployeeInfo() {
+    inquirer.prompt(addEmpQuestions).then(answer => {
+        answer.managerName === undefined ? answer.managerName = null : null;
+        let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
+        console.log(newEmployee);
+        return newEmployee;
     })
 }
 

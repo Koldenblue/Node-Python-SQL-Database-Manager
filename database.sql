@@ -40,9 +40,10 @@ CREATE TABLE employee (
 INSERT INTO department (dept_name) VALUES ("water"), ("bouncehouses"), ("blankets");
 SELECT * FROM department;
 
-INSERT INTO role (title, salary) VALUES ("Chief Ice Thrower", 50000.50), ("Fire Starter", 40000.25), ("Suntanner", 10500);
+INSERT INTO role (title, salary, department_id) VALUES ("Chief Ice Thrower", 50000.50, 1), ("Fire Starter", 40000.25, 2), ("Suntanner", 10500, 3);
 SELECT * FROM role;
 
-INSERT INTO manager (manager_name) VALUES ("Adjudicator");
+INSERT INTO manager (manager_name) VALUES ("Adjudicator"), ("Praetor"), ("Ossifier");
 
-INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("Lazarus", "Hearst", "1", "1");
+INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("Lazarus", "Hearst", 1, 1), ("Kev", "M", 2, 2), ("Tris", "M", 3, 3);
+SELECT first_name FROM employee;
