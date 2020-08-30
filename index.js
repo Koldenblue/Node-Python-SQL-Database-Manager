@@ -1,11 +1,9 @@
 let { initQuestions, addEmpQuestions, updateQuestions } = require("./questions.js");
 const inquirer = require("inquirer");
 const mysql = require("mysql");
-const util = require("util");
+
 const Role = require("./Role_class.js");
 const Employee = require("./Employee_class.js");
-const SQLSelect = require("./SQLSelect_class.js");
-
 
 
 let connection = mysql.createConnection({
@@ -22,8 +20,7 @@ let connection = mysql.createConnection({
 connection.connect(function(err) {
     if (err) throw err;
     console.log("connected as id " + connection.threadId + "\n");
-    // initAsk();
-    // connection.end();
+    initAsk();
 });
 
 
@@ -32,25 +29,26 @@ function createChoiceArray(choice, table) {
         let query = "SELECT " + choice + " FROM " + table;
         connection.query(query, (err, data) => {
             if (err) reject(err);
-            console.log(data);
-            console.log(data[0][choice])
+            // console.log(data);
+            // console.log(data[0][choice])
             choiceArray = [];
             for (let i = 0, j = data.length; i < j; i++) {
                 choiceArray.push(data[i][choice]);
             }
-            console.log(choiceArray)
+            // console.log(choiceArray)
             resolve(choiceArray);
         })
     })
 }
-let arrayPromise = createChoiceArray("title", "role")
-arrayPromise.then((data) => console.log(data))
+// let arrayPromise = createChoiceArray("title", "role")
+// arrayPromise.then((data) => console.log(data))
 
-
+/** Initial menu, stores the answer in the variable 'answer'.
+ Then directs user to new questions depending on the answer. */
 function initAsk() {
     console.log(`\n=========================================\n`)
     inquirer.prompt(initQuestions).then(function(answer) {
-        console.log(answer);
+        // console.log(answer);
         switch (answer.manageChoice) {
             case "View all employees by department":
                 viewEmployeesByDept().then(initAsk);
@@ -89,7 +87,7 @@ function initAsk() {
     })
 }
 
-
+/** View all employees, ordered by department name. */
 function viewEmployeesByDept() {
     return new Promise(function(resolve, reject) {
         connection.query("SELECT first_name, last_name, department.dept_name FROM employee"
@@ -99,12 +97,13 @@ function viewEmployeesByDept() {
             (err, data) => {
                 if (err) throw err;
                 console.log(data);
-                resolve();
+                resolve(data);
             }
         )
     })
 }
 
+/** View all employees, ordered by manager name. */
 function viewEmployeesByManager() {
     return new Promise(function(resolve, reject) {
         connection.query("SELECT first_name, last_name, manager.manager_name FROM employee"
@@ -113,34 +112,46 @@ function viewEmployeesByManager() {
             (err, data) => {
                 if (err) throw err;
                 console.log(data);
-                resolve();
+                resolve(data);
             }
         )
+    })
+}
+
+/** Gets an array of all titles from the role table.  Stores these values in arrays. 
+ * Asks questions about a new employee, using the array values as choices. */
+const getEmployeeInfo = () => {
+    return new Promise((resolve, reject) => {
+        let arrayPromise = createChoiceArray("title", "role")
+        let roleTitles;
+        arrayPromise.then((arr) => {
+            roleTitles = arr;
+            console.log(roleTitles);
+            inquirer.prompt(addEmpQuestions).then(answer => {
+                answer.managerName === undefined ? answer.managerName = null : null;
+                let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
+                console.log(newEmployee);
+                resolve(newEmployee);
+            });
+        });
     })
 }
 
 function addEmployee() {
     return new Promise(function(resolve, reject) {
-        let newEmployee = getEmployeeInfo();
-        connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ?",
-
-            (err, data) => {
-                if (err) throw err;
-                console.log(data);
-                resolve();
-            }
-        )
+        getEmployeeInfo().then((newEmployee) => {
+            connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
+                [newEmployee.firstName, newEmployee.lastName, newEmployee.role, newEmployee.managerName],
+                (err, data) => {
+                    if (err) throw err;
+                    console.log(data);
+                    resolve();
+                }
+            )
+        })
     })
 }
 
-function getEmployeeInfo() {
-    inquirer.prompt(addEmpQuestions).then(answer => {
-        answer.managerName === undefined ? answer.managerName = null : null;
-        let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
-        console.log(newEmployee);
-        return newEmployee;
-    })
-}
 
 function removeEmployee() {
     return new Promise(function(resolve, reject) {
@@ -191,6 +202,9 @@ function getAllRoles() {
     })
 }
 
+function formatDataTable() {
+
+}
 
 /** if a role already exists. If not, adds it to the allRoles array. */
 let addToAllRoles = (role) => {
