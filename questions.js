@@ -21,14 +21,16 @@ let addEmpQuestions = [
     name: "lastName"
   },
   {
-    type: "input",
+    type: "list",
     message: "What is the role of the employee?",
-    name: "role"
+    name: "role",
+    choices: []
   },
   {
-    type: "input",
+    type: "list",
     message: "What is the department of the employee?",
-    name: "department"
+    name: "department",
+    choices: []
   },
   {
     type: "input",
@@ -41,9 +43,10 @@ let addEmpQuestions = [
     name: "managerConfirm"
   },
   {
-    type: "input",
+    type: "list",
     message: "What is the name of the manager?",
     name: "managerName",
+    choices: [],
     when: (answers) => answers.managerConfirm
   }
 ]

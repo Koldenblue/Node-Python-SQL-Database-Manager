@@ -5,8 +5,10 @@ class Role {
     }
 
     // getters and setters
-    getRole = () => this.title;
-    setRole = (role) => this.title = title;
+    getTitle = () => this.title;
+    setTitle = (role) => this.title = title;
+    getSalary = () => this.salary;
+    setSalary = () => this.salary;
 }
 
 module.exports = Role

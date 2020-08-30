@@ -1,11 +1,8 @@
 let { initQuestions, addEmpQuestions, updateQuestions } = require("./questions.js");
 const inquirer = require("inquirer");
 const mysql = require("mysql");
-
 const Role = require("./Role_class.js");
 const Employee = require("./Employee_class.js");
-const Choice = require("inquirer/lib/objects/choice");
-
 
 let connection = mysql.createConnection({
     host: "localhost", 
@@ -24,19 +21,17 @@ connection.connect(function(err) {
     initAsk();
 });
 
-
+/** searches database. Finds a column, choice, from a table.
+ * Returns a promise to put all entries in that column into an array, for later use by inquirer. */
 function createChoiceArray(choice, table) {
     return new Promise(function(resolve, reject) {
         let query = "SELECT " + choice + " FROM " + table;
         connection.query(query, (err, data) => {
             if (err) reject(err);
-            // console.log(data);
-            // console.log(data[0][choice])
             choiceArray = [];
             for (let i = 0, j = data.length; i < j; i++) {
                 choiceArray.push(data[i][choice]);
             }
-            // console.log(choiceArray)
             resolve(choiceArray);
         })
     })
@@ -122,8 +117,6 @@ function viewEmployeesByManager() {
 /** Gets an array of all titles from the role table.  Stores these values in arrays. 
  * Asks questions about a new employee, using the array values as choices. */
 async function getEmployeeInfo() {
-    // the salary and name questions will be typed in
-
     // for each of the above, run the create choice array function
     return new Promise((resolve, reject) => {
         let titlePromise = createChoiceArray("title", "role");
@@ -132,7 +125,6 @@ async function getEmployeeInfo() {
         let roleArr;
         let deptArr;
         let managerArr;
-
 
         // get the appropriate arrays of choices, before returning the promise for the choice array.
         let choiceObj = {}
@@ -150,38 +142,39 @@ async function getEmployeeInfo() {
                 });
             });
         });
-    })
+    });
 }
 
 
-
-//             roleTitles => {
-//             inquirer.prompt(addEmpQuestions).then(answer => {
-//                 answer.managerName === undefined ? answer.managerName = null : null;
-//                 let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
-//                 console.log(newEmployee);
-//                 resolve(newEmployee);
-//             });
-//         });
-//     })
-// }
-
 function addEmployee() {
     return new Promise(function(resolve, reject) {
+        // first get the choice arrays for departments, roles, and managers.
         let newChoice = getEmployeeInfo()
         newChoice.then((choiceArrays) => {
             console.log("choice arrays")
             console.log(choiceArrays)
+            // edit the inquirer questions to include the choice arrays
+            addEmpQuestions[2].choices = choiceArrays.roles;
+            addEmpQuestions[3].choices = choiceArrays.depts;
+            addEmpQuestions[6].choices = choiceArrays.managers;
+            // get inquirer answers, and create a new Employee object based on the answers.
+            inquirer.prompt(addEmpQuestions).then(answer => {
+                answer.managerName === undefined ? answer.managerName = null : null;
+                console.log(answer);
+                let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
+                console.log(newEmployee);
+                // Finally, the employee table must be updated. To do this, the database must be queried for department and manager ids.
+                connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
+                    [newEmployee.firstName, newEmployee.lastName, newEmployee.title, newEmployee.managerName],
+                    (err, data) => {
+                        if (err) throw err;
+                        console.log(data);
+                        resolve();
+                    }
+                )
+                // connection.query(INSERT INTO)
 
-            
-            connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
-                [newEmployee.firstName, newEmployee.lastName, newEmployee.role, newEmployee.managerName],
-                (err, data) => {
-                    if (err) throw err;
-                    console.log(data);
-                    resolve();
-                }
-            )
+            })
         })
     })
 }
