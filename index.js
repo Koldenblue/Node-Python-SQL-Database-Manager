@@ -193,16 +193,24 @@ function addEmployee() {
                         break;
                     }
                 }
-                for (let elem of choiceArrays.managers) {
-                    if (answer.managerName === elem["manager_name"]) {
-                        var managerID = elem["id"];
-                        break;
+                if (answer.managerName !== null) {
+                    for (let elem of choiceArrays.managers) {
+                        if (answer.managerName === elem["manager_name"]) {
+                            var managerID = elem["id"];
+                            break;
+                        }
                     }
                 }
+                else {
+                    var managerID = null;
+                }
+                
+                let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
+                console.log(newEmployee);
 
                 // Finally, the employee table must be updated. To do this, the database must be queried for department and manager ids.
                 connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
-                    [newEmployee.firstName, newEmployee.lastName, newEmployee.title, newEmployee.managerName],
+                    [newEmployee.firstName, newEmployee.lastName, roleID, managerID],
                     (err, data) => {
                         if (err) throw err;
                         console.log(data);
