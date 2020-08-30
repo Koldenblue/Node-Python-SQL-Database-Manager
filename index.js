@@ -4,14 +4,17 @@ const mysql = require("mysql");
 const util = require("util");
 const Role = require("./Role_class.js");
 const Employee = require("./Employee_class.js");
+const SQLSelect = require("./SQLSelect_class.js");
+
+
 
 let connection = mysql.createConnection({
     host: "localhost", 
-
+    
     port: 3306,
-
+    
     user:"root",
-
+    
     password: "sqlpasskev",
     database: "employee_DB"
 });
@@ -22,6 +25,12 @@ connection.connect(function(err) {
     initAsk();
     // connection.end();
 });
+
+
+let myQuery = new SQLSelect("first_name", "employee");
+console.log(myQuery)
+console.log(myQuery.createSelectQuery());
+console.log("disp")
 
 function initAsk() {
     console.log(`\n=========================================\n`)
@@ -68,9 +77,10 @@ function initAsk() {
 
 function viewEmployeesByDept() {
     return new Promise(function(resolve, reject) {
-        connection.query("SELECT first_name, last_name, department.name FROM employee"
+        connection.query("SELECT first_name, last_name, department.dept_name FROM employee"
             + " JOIN role ON employee.role_id = role.id"
-            + " JOIN department ON department.id = role.department_id;",
+            + " JOIN department ON department.id = role.department_id"
+            + " ORDER BY department.dept_name;",
             (err, data) => {
                 if (err) throw err;
                 console.log(data);
@@ -82,32 +92,57 @@ function viewEmployeesByDept() {
 
 function viewEmployeesByManager() {
     return new Promise(function(resolve, reject) {
-        connection.query(
-            
+        connection.query("SELECT first_name, last_name, manager.manager_name FROM employee"
+            + " JOIN manager ON employee.manager_id = manager.id"
+            + " ORDER BY manager.manager_name;",
+            (err, data) => {
+                if (err) throw err;
+                console.log(data);
+                resolve();
+            }
         )
     })
 }
 
 function addEmployee() {
     return new Promise(function(resolve, reject) {
-        connection.query(
-            
+        // first find manager - select manager names and offer choice
+        // or enter manager name
+
+        // then:
+        connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ",
+
+            (err, data) => {
+                if (err) throw err;
+                console.log(data);
+                resolve();
+            }
         )
     })
 }
 
 function removeEmployee() {
     return new Promise(function(resolve, reject) {
-        connection.query(
-            
+        connection.query("DELETE FROM employee",
+
+            (err, data) => {
+                if (err) throw err;
+                console.log(data);
+                resolve();
+            }
         )
     })
 }
 
 function updateEmpRole() {
     return new Promise(function(resolve, reject) {
-        connection.query(
-            
+        connection.query("INSERT INTO role (title, salary) VALUES ?",
+
+            (err, data) => {
+                if (err) throw err;
+                console.log(data);
+                resolve();
+            }
         )
     })
 }
@@ -115,8 +150,12 @@ function updateEmpRole() {
 
 function updateEmpManager() {
     return new Promise(function(resolve, reject) {
-        connection.query(
-            
+        connection.query("INSERT INTO manager (manager_name) VALUES ?",
+            (err, data) => {
+                if (err) throw err;
+                console.log(data);
+                resolve();
+            }
         )
     })
 }
