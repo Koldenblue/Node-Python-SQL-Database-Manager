@@ -122,7 +122,6 @@ function viewEmployeesByManager() {
 /** Gets an array of all titles from the role table.  Stores these values in arrays. 
  * Asks questions about a new employee, using the array values as choices. */
 async function getEmployeeInfo() {
-    // neet to get the titles of all roles, the lists of depatments, and the lists of managers.
     // the salary and name questions will be typed in
 
     // for each of the above, run the create choice array function
@@ -131,48 +130,26 @@ async function getEmployeeInfo() {
         let deptPromise = createChoiceArray("dept_name", "department");
         let managerPromise = createChoiceArray("manager_name", "manager");
         let roleArr;
-        roleReturned = false;
         let deptArr;
-        deptReturned = false;
         let managerArr;
-        managerReturned = false;
 
+
+        // get the appropriate arrays of choices, before returning the promise for the choice array.
         let choiceObj = {}
-        // get the appropriate arrays of choices
         titlePromise.then((arr) => {
             roleArr = arr;
-            console.log(roleArr);
             choiceObj.roles = roleArr;
-            roleReturned = true;
-        }).then(() => {
             deptPromise.then(arr => {
                 deptArr = arr;
-                deptReturned = true;
                 choiceObj.depts = deptArr;
-                console.log("2nd")
-                console.log(choiceObj)
-            })
-        }).then(() => {
-            managerPromise.then(arr => {
-                managerArr = arr;
-                managerReturned = true;
-                choiceObj.managers = managerArr;
-            })
-        }).then(() => {
-            console.log("choice obj is")
-            console.log(choiceObj)
-            
-            resolve(choiceObj)
-        })
-        // wait for all three choice arrays to return.
-        // while (true) {
-        //     console.log("w")
-        //     if (roleReturned && managerReturned && deptReturned) {
-        //         console.log("d")
-        //         resolve(choiceObj);
-        //         break;
-        //     }
-        // }
+                managerPromise.then(arr => {
+                    managerArr = arr;
+                    choiceObj.managers = managerArr;
+                }).then(() => {
+                    resolve(choiceObj)
+                });
+            });
+        });
     })
 }
 
@@ -191,8 +168,12 @@ async function getEmployeeInfo() {
 
 function addEmployee() {
     return new Promise(function(resolve, reject) {
-        getEmployeeInfo().then((newEmployee) => {
-            console.log(newEmployee)
+        let newChoice = getEmployeeInfo()
+        newChoice.then((choiceArrays) => {
+            console.log("choice arrays")
+            console.log(choiceArrays)
+
+            
             connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
                 [newEmployee.firstName, newEmployee.lastName, newEmployee.role, newEmployee.managerName],
                 (err, data) => {
