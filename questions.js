@@ -51,15 +51,13 @@ let addEmpQuestions = [
   }
 ]
 
-let getEmployeeName = [
-  // {
-  //   type: "list",
-  //   message: "Would you like to choose employee names from a list, or enter a name?",
-  //   choices: ["Choose employees from a list of names.", "Enter the name of an employee."]
-  // },
+let removeEmpQuestions = [
+
   {
-    type: "input",
-    message: "What is the employee's first name?"
+    type: "list",
+    message: "Which employee should be removed?",
+    name: "name",
+    choices: []
   }
 ]
 
@@ -74,5 +72,6 @@ let updateQuestions = [
 module.exports = {
   initQuestions,
   addEmpQuestions,
+  removeEmpQuestions,
   updateQuestions
 }

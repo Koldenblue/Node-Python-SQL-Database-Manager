@@ -1,4 +1,4 @@
-let { initQuestions, addEmpQuestions, updateQuestions } = require("./questions.js");
+let { initQuestions, addEmpQuestions, removeEmpQuestions, updateQuestions } = require("./questions.js");
 const inquirer = require("inquirer");
 const mysql = require("mysql");
 const Role = require("./Role_class.js");
@@ -22,24 +22,32 @@ connection.connect(function(err) {
 });
 
 /** searches database. Finds column, choice and 'id', from a table.
- * @param {string} choice : The name of a column.
+ * @param {string} table : the name of a table.
+ * @param {string} choice : The name of one or more columns to add to the array.
  * Returns a promise to put all entries in that column into an array, for later use by inquirer.
  * The returned data contains objects, accessible through data[i][choice] and data[i]["id"] */
-function createChoiceArray(choice, table) {
+function createChoiceArray(table, ...choice) {
     return new Promise(function(resolve, reject) {
-        let query = "SELECT " + choice + ", id FROM " + table;
+        let query = "SELECT ";
+        for (let i = 0, j = choice.length; i < j; i++) {
+            query += choice[i] + ", "
+        }
+        query += "id FROM " + table + ";";
+        console.log(query)
         connection.query(query, (err, data) => {
-            if (err) reject(err);
+            if (err) {console.error("choice array error!"); console.error(err); reject(err);}
             choiceArray = [];
+            console.log("data is:")
+            console.log(data)
             for (let i = 0, j = data.length; i < j; i++) {
                 choiceArray.push(data[i]);
             }
-            // console.log(choiceArray)
+            console.log(choiceArray)
             resolve(choiceArray);
         })
     })
 }
-// let arrayPromise = createChoiceArray("title", "role")
+// let arrayPromise = createChoiceArray("role", "title")
 // arrayPromise.then((data) => console.log(data[0]["id"]))
 
 /** Initial menu, stores the answer in the variable 'answer'.
@@ -81,7 +89,7 @@ function initAsk() {
                 break;
             default:
                 console.log("switch error!");
-                break;
+                connection.end();
         }
     })
 }
@@ -117,14 +125,14 @@ function viewEmployeesByManager() {
     })
 }
 
-/** Gets an array of all titles from the role table.  Stores these values in arrays. 
- * Asks questions about a new employee, using the array values as choices. */
+/** Gets an array of all titles, depts, and managers, along with their ids. Stores these 3 separate arrays
+ * in a single object. */
 async function getEmployeeInfo() {
     // for each of the above, run the create choice array function
     return new Promise((resolve, reject) => {
-        let titlePromise = createChoiceArray("title", "role");
-        let deptPromise = createChoiceArray("dept_name", "department");
-        let managerPromise = createChoiceArray("manager_name", "manager");
+        let titlePromise = createChoiceArray("role", "title");
+        let deptPromise = createChoiceArray("department", "dept_name");
+        let managerPromise = createChoiceArray("manager", "manager_name");
         let roleArr;
         let deptArr;
         let managerArr;
@@ -148,7 +156,7 @@ async function getEmployeeInfo() {
     });
 }
 
-/** Given a choice array from createChoiceArray consisting of roles, depts, and managers, 
+/** Given a obj consisting of arrays from createChoiceArray(), containing roles, depts, and managers, 
  * populates the choice arrays of the addEmpQuestions array. */
 function populateAddChoices(choiceArrays) {
     addEmpQuestions[2].choices = [];
@@ -165,11 +173,12 @@ function populateAddChoices(choiceArrays) {
     }
 }
 
+/** Promise to add an employee to the database. */
 function addEmployee() {
     return new Promise(function(resolve, reject) {
         // first get the choice arrays for departments, roles, and managers.
         getEmployeeInfo().then((choiceArrays) => {
-            console.log("choice arrays")
+            console.log("choice arrays - choiceObj from getEmployeeInfo()")
             console.log(choiceArrays)
             // edit the inquirer questions to include the choice arrays
             populateAddChoices(choiceArrays);
@@ -178,7 +187,7 @@ function addEmployee() {
             inquirer.prompt(addEmpQuestions).then(answer => {
                 // if the user didn't pick a manager, set to null.
                 answer.managerName === undefined ? answer.managerName = null : null;
-                console.log(answer);
+                // console.log(answer);
 
                 // after getting the user answers, get the ids of the titles, depts, and managers
                 for (let elem of choiceArrays.roles) {
@@ -204,21 +213,17 @@ function addEmployee() {
                 else {
                     var managerID = null;
                 }
-                
-                let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
-                console.log(newEmployee);
 
+                let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
                 // Finally, the employee table must be updated. To do this, the database must be queried for department and manager ids.
                 connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
-                    [newEmployee.firstName, newEmployee.lastName, roleID, managerID],
+                    [newEmployee.getFirstName(), newEmployee.lastName, roleID, managerID],
                     (err, data) => {
                         if (err) throw err;
-                        console.log(data);
+                        // console.log(data);
                         resolve();
                     }
                 )
-                // connection.query(INSERT INTO)
-                    // should just get the ids in the earlier choice query
             })
         })
     })
@@ -227,16 +232,21 @@ function addEmployee() {
 
 function removeEmployee() {
     return new Promise(function(resolve, reject) {
-        connection.query("DELETE FROM employee",
-
-            (err, data) => {
-                if (err) throw err;
-                console.log(data);
-                resolve();
-            }
-        )
+        createChoiceArray("employee", "first_name", "last_name").then(empArray => {
+            console.log("the employee first name and last names array")
+            console.log(empArray);
+        })
     })
 }
+        
+        // connection.query("DELETE FROM employee",
+
+        //     (err, data) => {
+        //         if (err) throw err;
+        //         console.log(data);
+        //         resolve();
+
+
 
 function updateEmpRole() {
     return new Promise(function(resolve, reject) {
