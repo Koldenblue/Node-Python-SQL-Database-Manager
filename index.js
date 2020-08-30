@@ -21,23 +21,26 @@ connection.connect(function(err) {
     initAsk();
 });
 
-/** searches database. Finds a column, choice, from a table.
- * Returns a promise to put all entries in that column into an array, for later use by inquirer. */
+/** searches database. Finds column, choice and 'id', from a table.
+ * @param {string} choice : The name of a column.
+ * Returns a promise to put all entries in that column into an array, for later use by inquirer.
+ * The returned data contains objects, accessible through data[i][choice] and data[i]["id"] */
 function createChoiceArray(choice, table) {
     return new Promise(function(resolve, reject) {
-        let query = "SELECT " + choice + " FROM " + table;
+        let query = "SELECT " + choice + ", id FROM " + table;
         connection.query(query, (err, data) => {
             if (err) reject(err);
             choiceArray = [];
             for (let i = 0, j = data.length; i < j; i++) {
-                choiceArray.push(data[i][choice]);
+                choiceArray.push(data[i]);
             }
+            // console.log(choiceArray)
             resolve(choiceArray);
         })
     })
 }
 // let arrayPromise = createChoiceArray("title", "role")
-// arrayPromise.then((data) => console.log(data))
+// arrayPromise.then((data) => console.log(data[0]["id"]))
 
 /** Initial menu, stores the answer in the variable 'answer'.
  Then directs user to new questions depending on the answer. */
@@ -145,24 +148,58 @@ async function getEmployeeInfo() {
     });
 }
 
+/** Given a choice array from createChoiceArray consisting of roles, depts, and managers, 
+ * populates the choice arrays of the addEmpQuestions array. */
+function populateAddChoices(choiceArrays) {
+    addEmpQuestions[2].choices = [];
+    addEmpQuestions[3].choices = [];
+    addEmpQuestions[6].choices = [];
+    for (let elem of choiceArrays.roles) {
+        addEmpQuestions[2].choices.push(elem.title);
+    }
+    for (let elem of choiceArrays.depts) {
+        addEmpQuestions[3].choices.push(elem.dept_name);
+    }
+    for (let elem of choiceArrays.managers) {
+        addEmpQuestions[6].choices.push(elem.manager_name);
+    }
+}
 
 function addEmployee() {
     return new Promise(function(resolve, reject) {
         // first get the choice arrays for departments, roles, and managers.
-        let newChoice = getEmployeeInfo()
-        newChoice.then((choiceArrays) => {
+        getEmployeeInfo().then((choiceArrays) => {
             console.log("choice arrays")
             console.log(choiceArrays)
             // edit the inquirer questions to include the choice arrays
-            addEmpQuestions[2].choices = choiceArrays.roles;
-            addEmpQuestions[3].choices = choiceArrays.depts;
-            addEmpQuestions[6].choices = choiceArrays.managers;
+            populateAddChoices(choiceArrays);
+
             // get inquirer answers, and create a new Employee object based on the answers.
             inquirer.prompt(addEmpQuestions).then(answer => {
+                // if the user didn't pick a manager, set to null.
                 answer.managerName === undefined ? answer.managerName = null : null;
                 console.log(answer);
-                let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
-                console.log(newEmployee);
+
+                // after getting the user answers, get the ids of the titles, depts, and managers
+                for (let elem of choiceArrays.roles) {
+                    if (answer.role === elem["title"]) {
+                        var roleID = elem["id"];
+                        break;
+                    }
+                }
+                for (let elem of choiceArrays.depts) {
+                    if (answer.department === elem["dept_name"]) {
+                        var deptID = elem["id"];
+                        break;
+                    }
+                }
+                for (let elem of choiceArrays.managers) {
+                    if (answer.managerName === elem["manager_name"]) {
+                        var managerID = elem["id"];
+                        break;
+                    }
+                }
+
                 // Finally, the employee table must be updated. To do this, the database must be queried for department and manager ids.
                 connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
                     [newEmployee.firstName, newEmployee.lastName, newEmployee.title, newEmployee.managerName],
@@ -173,7 +210,7 @@ function addEmployee() {
                     }
                 )
                 // connection.query(INSERT INTO)
-
+                    // should just get the ids in the earlier choice query
             })
         })
     })
