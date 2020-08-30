@@ -4,6 +4,7 @@ const mysql = require("mysql");
 
 const Role = require("./Role_class.js");
 const Employee = require("./Employee_class.js");
+const Choice = require("inquirer/lib/objects/choice");
 
 
 let connection = mysql.createConnection({
@@ -120,26 +121,78 @@ function viewEmployeesByManager() {
 
 /** Gets an array of all titles from the role table.  Stores these values in arrays. 
  * Asks questions about a new employee, using the array values as choices. */
-const getEmployeeInfo = () => {
+async function getEmployeeInfo() {
+    // neet to get the titles of all roles, the lists of depatments, and the lists of managers.
+    // the salary and name questions will be typed in
+
+    // for each of the above, run the create choice array function
     return new Promise((resolve, reject) => {
-        let arrayPromise = createChoiceArray("title", "role")
-        let roleTitles;
-        arrayPromise.then((arr) => {
-            roleTitles = arr;
-            console.log(roleTitles);
-            inquirer.prompt(addEmpQuestions).then(answer => {
-                answer.managerName === undefined ? answer.managerName = null : null;
-                let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
-                console.log(newEmployee);
-                resolve(newEmployee);
-            });
-        });
+        let titlePromise = createChoiceArray("title", "role");
+        let deptPromise = createChoiceArray("dept_name", "department");
+        let managerPromise = createChoiceArray("manager_name", "manager");
+        let roleArr;
+        roleReturned = false;
+        let deptArr;
+        deptReturned = false;
+        let managerArr;
+        managerReturned = false;
+
+        let choiceObj = {}
+        // get the appropriate arrays of choices
+        titlePromise.then((arr) => {
+            roleArr = arr;
+            console.log(roleArr);
+            choiceObj.roles = roleArr;
+            roleReturned = true;
+        }).then(() => {
+            deptPromise.then(arr => {
+                deptArr = arr;
+                deptReturned = true;
+                choiceObj.depts = deptArr;
+                console.log("2nd")
+                console.log(choiceObj)
+            })
+        }).then(() => {
+            managerPromise.then(arr => {
+                managerArr = arr;
+                managerReturned = true;
+                choiceObj.managers = managerArr;
+            })
+        }).then(() => {
+            console.log("choice obj is")
+            console.log(choiceObj)
+            
+            resolve(choiceObj)
+        })
+        // wait for all three choice arrays to return.
+        // while (true) {
+        //     console.log("w")
+        //     if (roleReturned && managerReturned && deptReturned) {
+        //         console.log("d")
+        //         resolve(choiceObj);
+        //         break;
+        //     }
+        // }
     })
 }
+
+
+
+//             roleTitles => {
+//             inquirer.prompt(addEmpQuestions).then(answer => {
+//                 answer.managerName === undefined ? answer.managerName = null : null;
+//                 let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
+//                 console.log(newEmployee);
+//                 resolve(newEmployee);
+//             });
+//         });
+//     })
+// }
 
 function addEmployee() {
     return new Promise(function(resolve, reject) {
         getEmployeeInfo().then((newEmployee) => {
+            console.log(newEmployee)
             connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
                 [newEmployee.firstName, newEmployee.lastName, newEmployee.role, newEmployee.managerName],
                 (err, data) => {
