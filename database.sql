@@ -20,20 +20,13 @@ CREATE TABLE role (
   FOREIGN KEY (department_id) REFERENCES department(id)
 );
 
-CREATE TABLE manager (
-  id INT NOT NULL AUTO_INCREMENT,
-  manager_name VARCHAR(60) NOT NULL,
-  PRIMARY KEY (id)
-);
-
 CREATE TABLE employee (
   id INT NOT NULL AUTO_INCREMENT,
   first_name VARCHAR(30) NOT NULL,
   last_name VARCHAR(30) NOT NULL,
   role_id INT NOT NULL DEFAULT (1),
-  manager_id INT DEFAULT (1),
+  manager_id INT,
   PRIMARY KEY (id),
-  FOREIGN KEY (manager_id) REFERENCES manager(id),
   FOREIGN KEY (role_id) REFERENCES role(id)
 );
 
@@ -42,8 +35,6 @@ SELECT * FROM department;
 
 INSERT INTO role (title, salary, department_id) VALUES ("Chief Ice Thrower", 50000.50, 1), ("Fire Starter", 40000.25, 2), ("Suntanner", 10500, 3);
 SELECT * FROM role;
-
-INSERT INTO manager (manager_name) VALUES ("Adjudicator"), ("Praetor"), ("Ossifier");
 
 INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ("Lazarus", "Hearst", 1, 1), ("Kev", "M", 2, 2), ("Tris", "M", 3, 3);
 SELECT first_name FROM employee;

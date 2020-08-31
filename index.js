@@ -33,7 +33,6 @@ function createChoiceArray(table, ...choice) {
             query += choice[i] + ", "
         }
         query += "id FROM " + table + ";";
-        console.log(query)
         connection.query(query, (err, data) => {
             if (err) {console.error("choice array error!"); console.error(err); reject(err);}
             choiceArray = [];
@@ -110,12 +109,11 @@ function viewEmployeesByDept() {
     })
 }
 
-/** View all employees, ordered by manager name. */
+/** View all employees, ordered by manager id. */
 function viewEmployeesByManager() {
     return new Promise(function(resolve, reject) {
-        connection.query("SELECT first_name, last_name, manager.manager_name FROM employee"
-            + " JOIN manager ON employee.manager_id = manager.id"
-            + " ORDER BY manager.manager_name;",
+        connection.query("SELECT first_name, last_name, manager_id FROM employee"
+            + " ORDER BY manager_id;",
             (err, data) => {
                 if (err) throw err;
                 console.log(data);
@@ -125,18 +123,31 @@ function viewEmployeesByManager() {
     })
 }
 
+/** returns a promise that gets a manager's name, based on their id */
+function getManagerName(...manager_id) {
+    return new Promise((resolve, reject) => {
+        connection.query("SELECT first_name, last_name, manager_id, id FROM employee where ? = id;", [manager_id], (err, data) => {
+            if (err) reject(err);
+            let wholeName = data[0]["first_name"] + " " + data[0]["last_name"];
+            data[0]['wholeName'] = wholeName;
+            resolve(data);
+        })
+    })
+}
+
+
 /** Gets an array of all titles, depts, and managers, along with their ids. Stores these 3 separate arrays
  * in a single object. */
-async function getEmployeeInfo() {
+function getEmployeeInfo() {
     // for each of the above, run the create choice array function
     return new Promise((resolve, reject) => {
         let titlePromise = createChoiceArray("role", "title");
         let deptPromise = createChoiceArray("department", "dept_name");
-        let managerPromise = createChoiceArray("manager", "manager_name");
+        let managerPromise = createChoiceArray("employee", "manager_id");
         let roleArr;
         let deptArr;
         let managerArr;
-
+        
         // get the appropriate arrays of choices, before returning the promise for the choice array.
         let choiceObj = {}
         titlePromise.then((arr) => {
@@ -146,9 +157,15 @@ async function getEmployeeInfo() {
                 deptArr = arr;
                 choiceObj.depts = deptArr;
                 managerPromise.then(arr => {
-                    managerArr = arr;
-                    choiceObj.managers = managerArr;
+                    console.log(arr)
+                    managerArr = [];
+                    for (let elem of arr) {
+                        getManagerName(elem["id"]).then(data => {
+                            managerArr.push(data);
+                        })
+                    }
                 }).then(() => {
+                    choiceObj.managers = managerArr;
                     resolve(choiceObj)
                 });
             });
@@ -178,8 +195,8 @@ function addEmployee() {
     return new Promise(function(resolve, reject) {
         // first get the choice arrays for departments, roles, and managers.
         getEmployeeInfo().then((choiceArrays) => {
-            console.log("choice arrays - choiceObj from getEmployeeInfo()")
-            console.log(choiceArrays)
+            // console.log("choice arrays - choiceObj from getEmployeeInfo()")
+            // console.log(choiceArrays)
             // edit the inquirer questions to include the choice arrays
             populateAddChoices(choiceArrays);
 
@@ -187,7 +204,7 @@ function addEmployee() {
             inquirer.prompt(addEmpQuestions).then(answer => {
                 // if the user didn't pick a manager, set to null.
                 answer.managerName === undefined ? answer.managerName = null : null;
-                console.log(answer);
+                // console.log(answer);
 
                 // after getting the user answers, get the ids of the titles, depts, and managers
                 for (let elem of choiceArrays.roles) {
