@@ -21,14 +21,16 @@ let addEmpQuestions = [
     name: "lastName"
   },
   {
-    type: "input",
+    type: "list",
     message: "What is the role of the employee?",
-    name: "role"
+    name: "role",
+    choices: []
   },
   {
-    type: "input",
+    type: "list",
     message: "What is the department of the employee?",
-    name: "department"
+    name: "department",
+    choices: []
   },
   {
     type: "input",
@@ -41,22 +43,20 @@ let addEmpQuestions = [
     name: "managerConfirm"
   },
   {
-    type: "input",
+    type: "list",
     message: "What is the name of the manager?",
     name: "managerName",
+    choices: [],
     when: (answers) => answers.managerConfirm
   }
 ]
 
-let getEmployeeName = [
-  // {
-  //   type: "list",
-  //   message: "Would you like to choose employee names from a list, or enter a name?",
-  //   choices: ["Choose employees from a list of names.", "Enter the name of an employee."]
-  // },
+let removeEmpQuestions = [
   {
-    type: "input",
-    message: "What is the employee's first name?"
+    type: "list",
+    message: "Which employee should be removed?",
+    name: "name",
+    choices: ["Cancel"]
   }
 ]
 
@@ -64,12 +64,21 @@ let getEmployeeName = [
 let updateQuestions = [
   {
     type: "list",
-    message: "Which "
+    message: "Which employee should be updated?",
+    name: "name",
+    choices: ["Cancel"]
+  },
+  {
+    type: "list",
+    message: "What role should the employee be assigned?",
+    name: "role",
+    choices: []
   }
 ]
 
 module.exports = {
   initQuestions,
   addEmpQuestions,
+  removeEmpQuestions,
   updateQuestions
 }
