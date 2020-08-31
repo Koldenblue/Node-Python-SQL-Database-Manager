@@ -125,16 +125,27 @@ function viewEmployeesByManager() {
 
 /** returns a promise that gets a manager's name, based on their id */
 function getManagerName(...manager_id) {
+    let query = "SELECT first_name, last_name, manager_id, id FROM employee where id = ";
+    for (let i = 0, j = manager_id.length; i < j; i++) {
+        query += manager_id[i];
+        if (i < j - 1) {
+            query += " OR id = "
+        }
+    }
+    query += ";";
     return new Promise((resolve, reject) => {
-        connection.query("SELECT first_name, last_name, manager_id, id FROM employee where ? = id;", [manager_id], (err, data) => {
+        connection.query(query, (err, data) => {
             if (err) reject(err);
-            let wholeName = data[0]["first_name"] + " " + data[0]["last_name"];
-            data[0]['wholeName'] = wholeName;
+            data.forEach(elem => {
+                let wholeName = elem["first_name"] + " " + elem["last_name"];
+                elem['wholeName'] = wholeName;
+            })
             resolve(data);
         })
     })
 }
 
+// getManagerName(1, 2, 3).then(data => console.log(data))
 
 /** Gets an array of all titles, depts, and managers, along with their ids. Stores these 3 separate arrays
  * in a single object. */
