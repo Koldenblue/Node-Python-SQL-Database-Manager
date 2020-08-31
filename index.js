@@ -351,25 +351,29 @@ function updateEmpRole() {
 function updateEmpManager() {
     return new Promise(function(resolve, reject) {
         let empPromise = getEmployeeNamesArray();
-        let managerArr;
         empPromise.then(arr => {
-            console.log(arr)
             for (let elem of arr) {
                 updateEmpManagerQuestions1[0].choices.push(elem["wholeName"]);
             }
+            console.log(arr)
             return arr;
         }).then(arr => {
+            for (let elem of arr) {
+                updateEmpManagerQuestions1[0].choices.push(elem["wholeName"]);
+            }
             inquirer.prompt(updateEmpManagerQuestions1, answer => {
-                console.log(answer);
-                for (let elem of arr) {
-                    updateEmpManagerQuestions1[0].choices.push(elem["wholeName"]);
-                }
-            }).then(inquirer.prompt(updateEmpManagerQuestions2), answer => {
+                return answer
+            }).then(answer => {
+                console.log(arr)
                 console.log(answer)
+                for (let elem of arr) {
+                    updateEmpManagerQuestions2[0].choices.push(elem["wholeName"]);
+                }
+                (inquirer.prompt(updateEmpManagerQuestions2), answer2 => {
+                    console.log(answer2)
+                })
             })
         })
-
-
         // connection.query("INSERT INTO manager (manager_name) VALUES ?",
         //     (err, data) => {
         //         if (err) throw err;
