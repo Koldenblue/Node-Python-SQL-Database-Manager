@@ -154,7 +154,8 @@ function getEmployeeInfo() {
     return new Promise((resolve, reject) => {
         let titlePromise = createChoiceArray("role", "title");
         let deptPromise = createChoiceArray("department", "dept_name");
-        let managerPromise = createChoiceArray("employee", "manager_id");
+
+        let managerPromise = getEmployeeNamesArray();
         let roleArr;
         let deptArr;
         let managerArr;
@@ -168,15 +169,12 @@ function getEmployeeInfo() {
                 deptArr = arr;
                 choiceObj.depts = deptArr;
                 managerPromise.then(arr => {
-                    console.log(arr)
-                    managerArr = [];
-                    for (let elem of arr) {
-                        getManagerName(elem["id"]).then(data => {
-                            managerArr.push(data);
-                        })
-                    }
-                }).then(() => {
+                    // console.log(arr)
+                    managerArr = arr
                     choiceObj.managers = managerArr;
+                    // console.log("choice obj")
+                    // console.log(choiceObj)
+                }).then(() => {
                     resolve(choiceObj)
                 });
             });
@@ -197,7 +195,7 @@ function populateAddChoices(choiceArrays) {
         addEmpQuestions[3].choices.push(elem.dept_name);
     }
     for (let elem of choiceArrays.managers) {
-        addEmpQuestions[6].choices.push(elem.manager_name);
+        addEmpQuestions[6].choices.push(elem.wholeName);
     }
 }
 
@@ -206,8 +204,8 @@ function addEmployee() {
     return new Promise(function(resolve, reject) {
         // first get the choice arrays for departments, roles, and managers.
         getEmployeeInfo().then((choiceArrays) => {
-            // console.log("choice arrays - choiceObj from getEmployeeInfo()")
-            // console.log(choiceArrays)
+            console.log("choice arrays - choiceObj from getEmployeeInfo()")
+            console.log(choiceArrays)
             // edit the inquirer questions to include the choice arrays
             populateAddChoices(choiceArrays);
 
@@ -215,7 +213,8 @@ function addEmployee() {
             inquirer.prompt(addEmpQuestions).then(answer => {
                 // if the user didn't pick a manager, set to null.
                 answer.managerName === undefined ? answer.managerName = null : null;
-                // console.log(answer);
+                console.log(answer);
+
 
                 // after getting the user answers, get the ids of the titles, depts, and managers
                 for (let elem of choiceArrays.roles) {
@@ -232,7 +231,7 @@ function addEmployee() {
                 }
                 if (answer.managerName !== null) {
                     for (let elem of choiceArrays.managers) {
-                        if (answer.managerName === elem["manager_name"]) {
+                        if (answer.managerName === elem["wholeName"]) {
                             var managerID = elem["id"];
                             break;
                         }
