@@ -4,24 +4,10 @@ const inquirer = require("inquirer");
 const mysql = require("mysql");
 const Role = require("./Role_class.js");
 const Employee = require("./Employee_class.js");
+const connection = require("./app/config/connection")
 
-let connection = mysql.createConnection({
-    host: "localhost", 
-    
-    port: 3306,
-    
-    user:"root",
-    
-    password: "sqlpasskev",
-    database: "employee_DB"
-});
 
-connection.connect(function(err) {
-    if (err) throw err;
-    console.log("connected as id " + connection.threadId + "\n");
-    initAsk();
-});
-
+initAsk();
 /** searches database. Finds column, choice and 'id', from a table.
  * @param {string} table : the name of a table.
  * @param {string} choice : The name of one or more columns to add to the array.
