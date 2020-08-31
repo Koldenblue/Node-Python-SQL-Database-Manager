@@ -37,12 +37,12 @@ function createChoiceArray(table, ...choice) {
         connection.query(query, (err, data) => {
             if (err) {console.error("choice array error!"); console.error(err); reject(err);}
             choiceArray = [];
-            console.log("data is:")
-            console.log(data)
+            // console.log("data is:")
+            // console.log(data)
             for (let i = 0, j = data.length; i < j; i++) {
                 choiceArray.push(data[i]);
             }
-            console.log(choiceArray)
+            // console.log(choiceArray)
             resolve(choiceArray);
         })
     })
@@ -89,7 +89,7 @@ function initAsk() {
                 break;
             default:
                 console.log("switch error!");
-                connection.end();
+                break;
         }
     })
 }
@@ -187,7 +187,7 @@ function addEmployee() {
             inquirer.prompt(addEmpQuestions).then(answer => {
                 // if the user didn't pick a manager, set to null.
                 answer.managerName === undefined ? answer.managerName = null : null;
-                // console.log(answer);
+                console.log(answer);
 
                 // after getting the user answers, get the ids of the titles, depts, and managers
                 for (let elem of choiceArrays.roles) {
@@ -213,8 +213,8 @@ function addEmployee() {
                 else {
                     var managerID = null;
                 }
-
                 let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
+                console.log(newEmployee)
                 // Finally, the employee table must be updated. To do this, the database must be queried for department and manager ids.
                 connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
                     [newEmployee.getFirstName(), newEmployee.lastName, roleID, managerID],
@@ -232,9 +232,32 @@ function addEmployee() {
 
 function removeEmployee() {
     return new Promise(function(resolve, reject) {
+        // first get employee info from the database
         createChoiceArray("employee", "first_name", "last_name").then(empArray => {
-            console.log("the employee first name and last names array")
-            console.log(empArray);
+            // console.log("the employee first name and last names array")
+            // console.log(empArray);
+
+            // Concatenate the first and last names of each employee, and add to the employee objects returned from the database
+            empArray.forEach(elem => {
+                elem["wholeName"] = elem["first_name"] + " " + elem["last_name"];
+            })
+            // add the employee names to the inquirer choices
+            empArray.forEach(elem => {
+                removeEmpQuestions[0].choices.push(elem["wholeName"]);
+            })
+            inquirer.prompt(removeEmpQuestions).then(answer => {
+                answer.name === "Cancel" ? resolve() : null;
+                // find the whole name within empArray. Then delete that name from the database.
+                for (let elem of empArray) {
+                    if (answer.name === elem["wholeName"]) {
+                        connection.query("DELETE FROM employee WHERE ?;",
+                            { id : elem["id"]},
+                            (err) => {if (err) throw err});
+                        break;
+                    }
+                }
+                resolve();
+            })
         })
     })
 }

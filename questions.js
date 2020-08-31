@@ -52,12 +52,11 @@ let addEmpQuestions = [
 ]
 
 let removeEmpQuestions = [
-
   {
     type: "list",
     message: "Which employee should be removed?",
     name: "name",
-    choices: []
+    choices: ["Cancel"]
   }
 ]
 
