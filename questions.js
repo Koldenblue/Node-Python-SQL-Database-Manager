@@ -64,7 +64,9 @@ let removeEmpQuestions = [
 let updateQuestions = [
   {
     type: "list",
-    message: "Which "
+    message: "Which employee should be updated?",
+    name: "name",
+    choices: ["Cancel"]
   }
 ]
 

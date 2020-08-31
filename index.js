@@ -241,7 +241,8 @@ function removeEmployee() {
             empArray.forEach(elem => {
                 elem["wholeName"] = elem["first_name"] + " " + elem["last_name"];
             })
-            // add the employee names to the inquirer choices
+            // add the employee names to the inquirer choices, after resetting choices array
+            removeEmpQuestions[0].choices = ["Cancel"];
             empArray.forEach(elem => {
                 removeEmpQuestions[0].choices.push(elem["wholeName"]);
             })
@@ -261,15 +262,6 @@ function removeEmployee() {
         })
     })
 }
-        
-        // connection.query("DELETE FROM employee",
-
-        //     (err, data) => {
-        //         if (err) throw err;
-        //         console.log(data);
-        //         resolve();
-
-
 
 function updateEmpRole() {
     return new Promise(function(resolve, reject) {
