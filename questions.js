@@ -67,6 +67,12 @@ let updateQuestions = [
     message: "Which employee should be updated?",
     name: "name",
     choices: ["Cancel"]
+  },
+  {
+    type: "list",
+    message: "What role should the employee be assigned?",
+    name: "role",
+    choices: []
   }
 ]
 

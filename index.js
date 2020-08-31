@@ -97,7 +97,7 @@ function initAsk() {
 /** View all employees, ordered by department name. */
 function viewEmployeesByDept() {
     return new Promise(function(resolve, reject) {
-        connection.query("SELECT first_name, last_name, department.dept_name FROM employee"
+        connection.query("SELECT first_name, last_name, role.title, role.salary, department.dept_name FROM employee"
             + " JOIN role ON employee.role_id = role.id"
             + " JOIN department ON department.id = role.department_id"
             + " ORDER BY department.dept_name;",
@@ -229,9 +229,8 @@ function addEmployee() {
     })
 }
 
-
-function removeEmployee() {
-    return new Promise(function(resolve, reject) {
+function getEmployeeNamesArray() {
+    return new Promise((resolve, reject) => {
         // first get employee info from the database
         createChoiceArray("employee", "first_name", "last_name").then(empArray => {
             // console.log("the employee first name and last names array")
@@ -240,7 +239,15 @@ function removeEmployee() {
             // Concatenate the first and last names of each employee, and add to the employee objects returned from the database
             empArray.forEach(elem => {
                 elem["wholeName"] = elem["first_name"] + " " + elem["last_name"];
-            })
+            });
+            resolve(empArray);
+        });
+    })
+}
+
+function removeEmployee() {
+    return new Promise(function(resolve, reject) {
+        getEmployeeNamesArray().then(empArray => {
             // add the employee names to the inquirer choices, after resetting choices array
             removeEmpQuestions[0].choices = ["Cancel"];
             empArray.forEach(elem => {
@@ -265,14 +272,46 @@ function removeEmployee() {
 
 function updateEmpRole() {
     return new Promise(function(resolve, reject) {
-        connection.query("INSERT INTO role (title, salary) VALUES ?",
-
-            (err, data) => {
-                if (err) throw err;
-                console.log(data);
-                resolve();
-            }
-        )
+        getEmployeeNamesArray().then(empArray => {
+            updateQuestions[0].choices = ["Cancel"];
+            empArray.forEach(elem => {
+                updateQuestions[0].choices.push(elem["wholeName"]);
+            })
+            // next get roles
+            createChoiceArray("role", "title").then(choiceArr => {
+                console.log(choiceArr);
+                updateQuestions[1].choices = [];
+                for (let elem of choiceArr) {
+                    updateQuestions[1].choices.push(elem["title"])
+                }
+                return choiceArr;
+            }).then(choiceArr => {
+                inquirer.prompt(updateQuestions).then(answer => {
+                    console.log(answer);
+                    console.log(empArray)
+                    console.log(choiceArr)
+                    for (let elem of empArray) {
+                        if (answer.name === elem["wholeName"]) {
+                            var empID = elem["id"];
+                            break;
+                        }
+                    }
+                    for (let elem of choiceArr) {
+                        if (answer.role === elem["title"]) {
+                            var roleID = elem["id"];
+                        }
+                    }
+                    connection.query("UPDATE employee SET role_id = ? WHERE id = ?",
+                        [roleID, empID],
+                        (err, data) => {
+                            if (err) throw err;
+                            console.log(data);
+                            resolve();
+                        }
+                    )
+                })
+            })
+        })
     })
 }
 
