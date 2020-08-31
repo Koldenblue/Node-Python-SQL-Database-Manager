@@ -76,9 +76,28 @@ let updateQuestions = [
   }
 ]
 
+let updateEmpManagerQuestions1 = [
+  {
+    type: "list",
+    message: "Which employee should be updated?",
+    name: "name",
+    choices: []
+  }
+]
+updateEmpManagerQuestions2 = [
+  {
+    type: "list",
+    message: "Who should the new manager be?",
+    name: "manager",
+    choices: []
+  }
+]
+
 module.exports = {
   initQuestions,
   addEmpQuestions,
   removeEmpQuestions,
-  updateQuestions
+  updateQuestions,
+  updateEmpManagerQuestions1,
+  updateEmpManagerQuestions2
 }

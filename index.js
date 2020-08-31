@@ -1,4 +1,5 @@
-let { initQuestions, addEmpQuestions, removeEmpQuestions, updateQuestions } = require("./questions.js");
+let { initQuestions, addEmpQuestions, removeEmpQuestions, updateQuestions, 
+    updateEmpManagerQuestions1, updateEmpManagerQuestions2 } = require("./questions.js");
 const inquirer = require("inquirer");
 const mysql = require("mysql");
 const Role = require("./Role_class.js");
@@ -88,6 +89,7 @@ function initAsk() {
                 break;
             default:
                 console.log("switch error!");
+                connection.end();
                 break;
         }
     })
@@ -115,7 +117,7 @@ function viewEmployeesByManager() {
         connection.query("SELECT first_name, last_name, manager_id FROM employee"
             + " ORDER BY manager_id;",
             (err, data) => {
-                if (err) throw err;
+                if (err) reject(err);
                 console.log(data);
                 resolve(data);
             }
@@ -256,6 +258,9 @@ function addEmployee() {
     })
 }
 
+/** Returns a promise to get all employee first, last, whole names, as well as ids
+ * Each employee is stored as an object in an array, with the properties accessible by 
+ * array[i]["first_name"], ["last_name"], ["wholeName"], ["id"] */
 function getEmployeeNamesArray() {
     return new Promise((resolve, reject) => {
         // first get employee info from the database
@@ -345,13 +350,37 @@ function updateEmpRole() {
 
 function updateEmpManager() {
     return new Promise(function(resolve, reject) {
-        connection.query("INSERT INTO manager (manager_name) VALUES ?",
-            (err, data) => {
-                if (err) throw err;
-                console.log(data);
-                resolve();
+        let empPromise = getEmployeeNamesArray();
+        empPromise.then(arr => {
+            for (let elem of arr) {
+                updateEmpManagerQuestions1[0].choices.push(elem["wholeName"]);
             }
-        )
+            console.log(arr)
+            return arr;
+        }).then(arr => {
+            for (let elem of arr) {
+                updateEmpManagerQuestions1[0].choices.push(elem["wholeName"]);
+            }
+            inquirer.prompt(updateEmpManagerQuestions1, answer => {
+                return answer
+            }).then(answer => {
+                console.log(arr)
+                console.log(answer)
+                for (let elem of arr) {
+                    updateEmpManagerQuestions2[0].choices.push(elem["wholeName"]);
+                }
+                (inquirer.prompt(updateEmpManagerQuestions2), answer2 => {
+                    console.log(answer2)
+                })
+            })
+        })
+        // connection.query("INSERT INTO manager (manager_name) VALUES ?",
+        //     (err, data) => {
+        //         if (err) throw err;
+        //         console.log(data);
+        //         resolve();
+        //     }
+        // )
     })
 }
 
