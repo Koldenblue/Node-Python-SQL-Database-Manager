@@ -271,7 +271,7 @@ function getEmployeeNamesArray() {
         });
     })
 }
-
+// Also need to check if that employee manages anyone
 function removeEmployee() {
     return new Promise(function(resolve, reject) {
         getEmployeeNamesArray().then(empArray => {
