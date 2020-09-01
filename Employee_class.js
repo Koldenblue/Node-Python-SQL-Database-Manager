@@ -1,7 +1,7 @@
 const Role = require("./Role_Class.js");
 
 class Employee extends Role {
-    constructor(firstName, lastName, title, department, salary, manager=null) {
+    constructor(firstName, lastName, department, manager=null) {
         super(title, salary);
         this.firstName = firstName;
         this.lastName = lastName;

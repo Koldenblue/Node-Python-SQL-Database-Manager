@@ -5,7 +5,7 @@ const initQuestions = [
     name: "manageChoice",
     choices: ["View all employees by department", "View all employees by manager", "Add employee",
       "Remove employee", "Update employee role", "Update employee manager", "View all roles",
-      "Add role", "Remove role", "Quit"]
+      "Add role", "Remove role", "Add department", "Remove department", "Quit"]
   }
 ]
 
@@ -25,17 +25,6 @@ let addEmpQuestions = [
     message: "What is the role of the employee?",
     name: "role",
     choices: []
-  },
-  {
-    type: "list",
-    message: "What is the department of the employee?",
-    name: "department",
-    choices: []
-  },
-  {
-    type: "input",
-    message: "What is the salary of the employee?",
-    name: "salary"
   },
   {
     type: "confirm",

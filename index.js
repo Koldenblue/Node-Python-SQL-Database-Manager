@@ -1,13 +1,11 @@
 let { initQuestions, addEmpQuestions, removeEmpQuestions, updateQuestions, 
     updateEmpManagerQuestions1, updateEmpManagerQuestions2 } = require("./questions.js");
 const inquirer = require("inquirer");
-const mysql = require("mysql");
-const Role = require("./Role_class.js");
-const Employee = require("./Employee_class.js");
 const connection = require("./app/config/connection")
 
 
 initAsk();
+
 /** searches database. Finds column, choice and 'id', from a table.
  * @param {string} table : the name of a table.
  * @param {string} choice : The name of one or more columns to add to the array.
@@ -70,6 +68,12 @@ function initAsk() {
             case "Remove role":
                 removeFromAllRoles().then(initAsk); // TODO: role params
                 break;
+            case "Add department":
+                addDepartment().then(initAsk);
+                break;
+            case "Remove department":
+                removeDepartment().then(initAsk);
+                break;
             case "Quit":
                 connection.end();
                 break;
@@ -84,7 +88,7 @@ function initAsk() {
 /** View all employees, ordered by department name. */
 function viewEmployeesByDept() {
     return new Promise(function(resolve, reject) {
-        connection.query("SELECT first_name, last_name, role.title, role.salary, department.dept_name FROM employee"
+        connection.query("SELECT first_name, last_name, role.title, role.salary, department.dept_name, manager_id FROM employee"
             + " JOIN role ON employee.role_id = role.id"
             + " JOIN department ON department.id = role.department_id"
             + " ORDER BY department.dept_name;",
@@ -141,11 +145,8 @@ function getEmployeeInfo() {
     // for each of the above, run the create choice array function
     return new Promise((resolve, reject) => {
         let titlePromise = createChoiceArray("role", "title");
-        let deptPromise = createChoiceArray("department", "dept_name");
-
         let managerPromise = getEmployeeNamesArray();
         let roleArr;
-        let deptArr;
         let managerArr;
         
         // get the appropriate arrays of choices, before returning the promise for the choice array.
@@ -153,18 +154,14 @@ function getEmployeeInfo() {
         titlePromise.then((arr) => {
             roleArr = arr;
             choiceObj.roles = roleArr;
-            deptPromise.then(arr => {
-                deptArr = arr;
-                choiceObj.depts = deptArr;
-                managerPromise.then(arr => {
-                    // console.log(arr)
-                    managerArr = arr
-                    choiceObj.managers = managerArr;
-                    // console.log("choice obj")
-                    // console.log(choiceObj)
-                }).then(() => {
-                    resolve(choiceObj)
-                });
+            managerPromise.then(arr => {
+                // console.log(arr)
+                managerArr = arr
+                choiceObj.managers = managerArr;
+                // console.log("choice obj")
+                // console.log(choiceObj)
+            }).then(() => {
+                resolve(choiceObj)
             });
         });
     });
@@ -174,16 +171,12 @@ function getEmployeeInfo() {
  * populates the choice arrays of the addEmpQuestions array. */
 function populateAddChoices(choiceArrays) {
     addEmpQuestions[2].choices = [];
-    addEmpQuestions[3].choices = [];
-    addEmpQuestions[6].choices = [];
+    addEmpQuestions[4].choices = [];
     for (let elem of choiceArrays.roles) {
         addEmpQuestions[2].choices.push(elem.title);
     }
-    for (let elem of choiceArrays.depts) {
-        addEmpQuestions[3].choices.push(elem.dept_name);
-    }
     for (let elem of choiceArrays.managers) {
-        addEmpQuestions[6].choices.push(elem.wholeName);
+        addEmpQuestions[4].choices.push(elem.wholeName);
     }
 }
 
@@ -203,17 +196,10 @@ function addEmployee() {
                 answer.managerName === undefined ? answer.managerName = null : null;
                 console.log(answer);
 
-
                 // after getting the user answers, get the ids of the titles, depts, and managers
                 for (let elem of choiceArrays.roles) {
                     if (answer.role === elem["title"]) {
                         var roleID = elem["id"];
-                        break;
-                    }
-                }
-                for (let elem of choiceArrays.depts) {
-                    if (answer.department === elem["dept_name"]) {
-                        var deptID = elem["id"];
                         break;
                     }
                 }
@@ -228,11 +214,10 @@ function addEmployee() {
                 else {
                     var managerID = null;
                 }
-                let newEmployee = new Employee(answer.firstName, answer.lastName, answer.role, answer.department, answer.salary, answer.managerName);
-                console.log(newEmployee)
+
                 // Finally, the employee table must be updated. To do this, the database must be queried for department and manager ids.
                 connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
-                    [newEmployee.getFirstName(), newEmployee.lastName, roleID, managerID],
+                    [answer.firstName, answer.lastName, roleID, managerID],
                     (err, data) => {
                         if (err) throw err;
                         // console.log(data);
@@ -341,32 +326,39 @@ function updateEmpManager() {
             for (let elem of arr) {
                 updateEmpManagerQuestions1[0].choices.push(elem["wholeName"]);
             }
-            console.log(arr)
-            return arr;
-        }).then(arr => {
-            for (let elem of arr) {
-                updateEmpManagerQuestions1[0].choices.push(elem["wholeName"]);
-            }
+            return arr
+        }).then((arr) => {
             inquirer.prompt(updateEmpManagerQuestions1, answer => {
-                return answer
+                return answer;
             }).then(answer => {
-                console.log(arr)
-                console.log(answer)
                 for (let elem of arr) {
-                    updateEmpManagerQuestions2[0].choices.push(elem["wholeName"]);
+                    elem["wholeName"] !== answer.name ? updateEmpManagerQuestions2[0].choices.push(elem["wholeName"]) : null;
                 }
-                (inquirer.prompt(updateEmpManagerQuestions2), answer2 => {
+                inquirer.prompt(updateEmpManagerQuestions2, answer2 => {
                     console.log(answer2)
+                    return (answer2)
+                }).then(answer2 => {
+                    console.log("ASDA")
+                    console.log(arr)
+                    console.log("SDFSDF")
+                    console.log(answer2)
+                    console.log(answer)
+                    let managerID;
+                    let empID;
+                    for (let elem of arr) {
+                        elem["wholeName"] === answer.name ? empID = elem["id"] : null;
+                        elem["wholeName"] === answer2.manager ? managerID = elem["id"] : null;
+                    }
+                    console.log(empID)
+                    console.log(managerID)
+                    connection.query("UPDATE employee SET manager_id = ? WHERE id = ?", [managerID, empID], (err, data) => {
+                        if (err) throw err;
+                        console.log(data);
+                        resolve();
+                    })
                 })
             })
         })
-        // connection.query("INSERT INTO manager (manager_name) VALUES ?",
-        //     (err, data) => {
-        //         if (err) throw err;
-        //         console.log(data);
-        //         resolve();
-        //     }
-        // )
     })
 }
 
@@ -409,4 +401,12 @@ let removeFromAllRoles = (role) => {
     }
     foundRole ? console.log(`The ${role} role was removed from the database.`)
         : console.log(`The ${role} role was not found in the database!`);
+}
+
+function addDepartment() {
+
+}
+
+function removeDepartment() {
+
 }
