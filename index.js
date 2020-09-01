@@ -1,10 +1,10 @@
 let { initQuestions, addEmpQuestions, removeEmpQuestions, updateQuestions, 
-    updateEmpManagerQuestions1, updateEmpManagerQuestions2 } = require("./questions.js");
+    updateEmpManagerQuestions1, updateEmpManagerQuestions2, addRoleQuestions,
+    addDeptQuestions } = require("./questions.js");
 const inquirer = require("inquirer");
 const connection = require("./app/config/connection")
 
 
-initAsk();
 
 /** searches database. Finds column, choice and 'id', from a table.
  * @param {string} table : the name of a table.
@@ -34,12 +34,12 @@ function createChoiceArray(table, ...choice) {
 // let arrayPromise = createChoiceArray("role", "title")
 // arrayPromise.then((data) => console.log(data[0]["id"]))
 
+initAsk();
 /** Initial menu, stores the answer in the variable 'answer'.
  Then directs user to new questions depending on the answer. */
 function initAsk() {
     console.log(`\n=========================================\n`)
     inquirer.prompt(initQuestions).then(function(answer) {
-        // console.log(answer);
         switch (answer.manageChoice) {
             case "View all employees by department":
                 viewEmployeesByDept().then(initAsk);
@@ -67,6 +67,9 @@ function initAsk() {
                 break;
             case "Remove role":
                 removeFromAllRoles().then(initAsk); // TODO: role params
+                break;
+            case "View all departments":
+                getAllDepartments().then(initAsk);
                 break;
             case "Add department":
                 addDepartment().then(initAsk);
@@ -366,41 +369,82 @@ function updateEmpManager() {
 allRoles = [];
 
 function getAllRoles() {
-    connection.query("SELECT name FROM role", (err, data) => {
-        if (err) throw err;
-
+    return new Promise((resolve, reject) => {
+        connection.query("SELECT * FROM role", (err, data) => {
+            if (err) throw err;
+            console.log(data)
+            resolve();
+        })
     })
 }
 
-function formatDataTable() {
+function getAllDepartments() {
+    return new Promise((resolve, reject) => {
+        connection.query("SELECT * FROM department", (err, data) => {
+            if (err) throw err;
+            console.log(data)
+            resolve(data);
+        })
+    })
+}
+
+
+function formatDataTable(...dataObjects) {
 
 }
 
 /** if a role already exists. If not, adds it to the allRoles array. */
-let addToAllRoles = (role) => {
-    let roleAlreadyPresent = false;
-    for (let elem of this.allRoles) {
-        console.log(elem);
-        if (elem === role) {
-            console.log("Role already exists in database!");
-            roleAlreadyPresent = true;
-        }
-    }
-    roleAlreadyPresent ? null : this.allRoles.push(role);
+// let roleAlreadyPresent = false;
+// for (let elem of this.allRoles) {
+//     console.log(elem);
+//     if (elem === role) {
+//         console.log("Role already exists in database!");
+//         roleAlreadyPresent = true;
+//     }
+// }
+// roleAlreadyPresent ? null : this.allRoles.push(role);
+function addToAllRoles() {
+    return new Promise((resolve, reject) => {
+        getAllDepartments().then(data => {
+            addRoleQuestions[2].choices = [];
+            for (let elem of data) {
+                addRoleQuestions[2].choices.push(elem["dept_name"]);
+            }
+            return data;
+        }).then((data) => {
+            inquirer.prompt(addRoleQuestions, answers => {
+                console.log(answers)
+                return answers;
+            }).then(answers => {
+                for (let elem of data) {
+                    if (elem["dept_name"] === answers["dept_name"]) {
+                        var deptID = elem["id"];
+                        break;
+                    }
+                }
+                connection.query("INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)", [answers.title, answers.salary, deptID], (err, data) => {
+                    if (err) throw err;
+                    console.log(data)
+                    resolve();
+                })
+            })
+        })
+    })
 }
 
 /** Removes a role from the allRoles array. */
-let removeFromAllRoles = (role) => {
-    let foundRole = false;
-    for (let i = 0, j = this.allRoles.length; i < j; i++) {
-        if (this.allRoles[i] === role) {
-            this.allRoles.splice(i, 1);
-            foundRole = true;
-            break;
-        }
-    }
-    foundRole ? console.log(`The ${role} role was removed from the database.`)
-        : console.log(`The ${role} role was not found in the database!`);
+// let foundRole = false;
+// for (let i = 0, j = this.allRoles.length; i < j; i++) {
+//     if (this.allRoles[i] === role) {
+//         this.allRoles.splice(i, 1);
+//         foundRole = true;
+//         break;
+//     }
+// }
+// foundRole ? console.log(`The ${role} role was removed from the database.`)
+//     : console.log(`The ${role} role was not found in the database!`);
+function removeFromAllRoles() {
+
 }
 
 function addDepartment() {

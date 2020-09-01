@@ -5,7 +5,7 @@ const initQuestions = [
     name: "manageChoice",
     choices: ["View all employees by department", "View all employees by manager", "Add employee",
       "Remove employee", "Update employee role", "Update employee manager", "View all roles",
-      "Add role", "Remove role", "Add department", "Remove department", "Quit"]
+      "Add role", "Remove role", "View all departments", "Add department", "Remove department", "Quit"]
   }
 ]
 
@@ -82,11 +82,39 @@ updateEmpManagerQuestions2 = [
   }
 ]
 
+addRoleQuestions = [
+  {
+    type: "input",
+    message: "What is the title of the new role?",
+    name: "title"
+  },
+  {
+    type: "input",
+    message: "What is the salary of the new role?",
+    name: "salary"
+  },
+  {
+    type: "list",
+    message: "What department does this role belong to?",
+    name: "dept_name",
+    choices: []
+  }
+]
+
+addDeptQuestions = [
+  {
+    type: "input",
+    message: "What is the name of the new department?",
+    name: "dept_name"
+  }
+]
 module.exports = {
   initQuestions,
   addEmpQuestions,
   removeEmpQuestions,
   updateQuestions,
   updateEmpManagerQuestions1,
-  updateEmpManagerQuestions2
+  updateEmpManagerQuestions2,
+  addRoleQuestions,
+  addDeptQuestions
 }
