@@ -8,6 +8,8 @@ py.stdout.on('data', (data) => {
     console.log(data)
 })
 '''
+# careful! Python will not trace errors as normal when passing data to node.
+# One viable option could be to import the error logging module.
 
 import sys
 # this python file is intended to be passed an argument vector which is an array

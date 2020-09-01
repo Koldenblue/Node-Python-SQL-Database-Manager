@@ -54,10 +54,16 @@ function initAsk() {
             case "View all employees by department":
                 viewEmployeesByDept().then(data => {
                     formatDataTable(data)
-                   }).then(initAsk);
+                    .then(table => console.log(table))
+                    .then(initAsk);
+                })
                 break;
             case "View all employees by manager":
-                viewEmployeesByManager().then(initAsk);
+                viewEmployeesByManager().then(data => {
+                    formatDataTable(data)
+                    .then(table => console.log(table))
+                    .then(initAsk);
+                })
                 break;
             case "Add employee":
                 addEmployee().then(initAsk);
@@ -72,7 +78,11 @@ function initAsk() {
                 updateEmpManager().then(initAsk);
                 break;
             case "View all roles":
-                getAllRoles().then(initAsk);
+                getAllRoles().then(data => {
+                    formatDataTable(data)
+                    .then(table => console.log(table))
+                    .then(initAsk);
+                })
                 break;
             case "Add role":
                 addToAllRoles().then(initAsk);  // TODO: update with params about role
@@ -81,7 +91,11 @@ function initAsk() {
                 removeFromAllRoles().then(initAsk); // TODO: role params
                 break;
             case "View all departments":
-                getAllDepartments().then(initAsk);
+                getAllDepartments().then(data => {
+                    formatDataTable(data)
+                    .then(table => console.log(table))
+                    .then(initAsk);
+                })
                 break;
             case "Add department":
                 addDepartment().then(initAsk);
@@ -132,8 +146,14 @@ function viewEmployeesByManager() {
             + " ORDER BY manager_id;",
             (err, data) => {
                 if (err) throw err;
-                console.log(data);
-                resolve(data);
+                getManagerName(data).then(managerIdArray => {
+                    data.forEach(elem => {
+                        elem["manager_name"] = managerIdArray[elem["manager_id"]];
+                        elem["manager_name"] === undefined ? elem["manager_name"] = "None" : null;
+                        delete elem.manager_id;
+                    })
+                    resolve(data);
+                })
             }
         )
     }).catch((err) => {
@@ -184,9 +204,8 @@ function getManagerName(objArr) {
     })
 }
 
-// getManagerName(1, 2, 3).then(data => console.log(data))
 
-/** Gets an array of all titles, depts, and managers, along with their ids. Stores these 3 separate arrays
+/** Gets an array of all titles and managers, along with their ids. Stores these separate arrays
  * in a single object. */
 function getEmployeeInfo() {
     // for each of the above, run the create choice array function
@@ -425,10 +444,9 @@ function updateEmpManager() {
 
 function getAllRoles() {
     return new Promise((resolve, reject) => {
-        connection.query("SELECT * FROM role", (err, data) => {
+        connection.query("SELECT title, salary FROM role", (err, data) => {
             if (err) throw err;
-            console.log(data)
-            resolve();
+            resolve(data);
         })
     }).catch((err) => {
         reject(err);
@@ -439,9 +457,8 @@ function getAllRoles() {
 
 function getAllDepartments() {
     return new Promise((resolve, reject) => {
-        connection.query("SELECT * FROM department", (err, data) => {
+        connection.query("SELECT dept_name FROM department", (err, data) => {
             if (err) throw err;
-            console.log(data)
             resolve(data);
         })
     }).catch((err) => {
@@ -451,66 +468,47 @@ function getAllDepartments() {
 }
 
 
-
-// },
-// RowDataPacket {
-//   first_name: 'Bart',
-//   last_name: 'Simpson',
-//   title: 'Fire Starter',
-//   salary: 40000.25,
-//   dept_name: 'bouncehouses',
-//   manager_name: 'None'
-// }
-// ]
 function formatDataTable(columns) {
-
-    // add columns array to argument vectors to be passed to python
-    let args = ["./nodePythonApp/formatter.py"]
-    console.log(columns)
-    for (let columnName in columns[0]) {
-        args.push(columnName)
-    }
-    numColumns = args.length - 1;
-    args.splice(1, 0, numColumns)
-    // now args is the python filename, the number of columns, plus a list of the column names
-
-    // finally, add info for each object in the column (an employee, for example) to args list
-    for (let obj of columns) {
-        for (let key in obj) {
-            args.push(obj[key])
+    return new Promise((resolve, reject) => {
+        // add columns array to argument vectors to be passed to python
+        let args = ["./nodePythonApp/formatter.py"]
+        // console.log(columns)
+        for (let columnName in columns[0]) {
+            args.push(columnName)
         }
-    }
+        numColumns = args.length - 1;
+        args.splice(1, 0, numColumns)
+        // now args is the python filename, the number of columns, plus a list of the column names
 
-    // use a different function to print the table, depending on whether python is installed or not.
-    if (pythonInstalled) {
-        // Next add column info, one column at a time.
-        // spawn new python program. On data event, convert data (the formatted table) to a string and log it.
-        let py = spawn("py", args);
-        py.stdout.on('data', (data) => {
-            data = data.toString()
-            console.log(data)
-        })
-    }
-
-    // if python is not installed, can still use the same args list
-    else {
-        let columnsString = "";
-        for (let i = 0, j = columnNames.length; i < j; i++) {
-            columnsString += columnNames[i] + ""
+        // finally, add info for each object in the column (an employee, for example) to args list
+        for (let obj of columns) {
+            for (let key in obj) {
+                args.push(obj[key])
+            }
         }
-    }
+
+        // use a different function to print the table, depending on whether python is installed or not.
+        if (pythonInstalled) {
+            // Next add column info, one column at a time.
+            // spawn new python program. On data event, convert data (the formatted table) to a string and log it.
+            let py = spawn("py", args);
+            py.stdout.on('data', (data) => {
+                data = data.toString()
+                resolve(data)
+            })
+        }
+
+        // if python is not installed, can still use the same args list
+        else {
+            let columnsString = "";
+            for (let i = 0, j = columnNames.length; i < j; i++) {
+                columnsString += columnNames[i] + ""
+            }
+        }
+    })
 }
 
-/** if a role already exists. If not, adds it to the allRoles array. */
-// let roleAlreadyPresent = false;
-// for (let elem of this.allRoles) {
-//     console.log(elem);
-//     if (elem === role) {
-//         console.log("Role already exists in database!");
-//         roleAlreadyPresent = true;
-//     }
-// }
-// roleAlreadyPresent ? null : this.allRoles.push(role);
+
 function addToAllRoles() {
     return new Promise((resolve, reject) => {
         getAllDepartments().then(data => {
@@ -543,17 +541,7 @@ function addToAllRoles() {
     })
 }
 
-/** Removes a role from the allRoles array. */
-// let foundRole = false;
-// for (let i = 0, j = this.allRoles.length; i < j; i++) {
-//     if (this.allRoles[i] === role) {
-//         this.allRoles.splice(i, 1);
-//         foundRole = true;
-//         break;
-//     }
-// }
-// foundRole ? console.log(`The ${role} role was removed from the database.`)
-//     : console.log(`The ${role} role was not found in the database!`);
+
 function removeFromAllRoles() {
 
 }
