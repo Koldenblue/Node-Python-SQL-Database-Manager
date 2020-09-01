@@ -489,25 +489,62 @@ function formatDataTable(columns) {
 
         // use a different function to print the table, depending on whether python is installed or not.
         if (pythonInstalled) {
-            // Next add column info, one column at a time.
-            // spawn new python program. On data event, convert data (the formatted table) to a string and log it.
-            let py = spawn("py", args);
-            py.stdout.on('data', (data) => {
-                data = data.toString()
-                resolve(data)
+            // different terminal commands to open python.
+            let pythonFilenames = ["python3", "py", "python"]
+            let pythonFile = 0;
+            spawnPython(pythonFilenames[pythonFile], args).then(data => {
+                resolve(data);
+            })
+            // try the different terminal commands one at a time
+            .catch((err) => {
+                pythonFile++;
+                spawnPython(pythonFilenames[pythonFile], args).then(data => {
+                    resolve(data);
+                }).catch((err) => {
+                    pythonFile++;
+                    spawnPython(pythonFilenames[pythonFile], args).then(data => {
+                        resolve(data);
+                    }).catch((err) => {
+                        reject("Error: Could not find python filepath.");
+                    })
+                })
             })
         }
-
+        
         // if python is not installed, can still use the same args list
-        else {
+        if (!pythonInstalled) {
             let columnsString = "";
-            for (let i = 0, j = columnNames.length; i < j; i++) {
-                columnsString += columnNames[i] + ""
+            for (let i = 0, j = columns.length; i < j; i++) {
+                columnsString += columns[i] + ""
             }
+            resolve("whee")
+        }
+    }).catch((err) => {
+        // if cannot find python, try again without python
+        if (err === "Error: Could not find python filepath.") {
+            console.log(err);
+            pythonInstalled = false;
+            formatDataTable(columns)
+        }
+        else {
+            reject(err);
+            connection.end();
         }
     })
 }
 
+function spawnPython(pythonFile, args) {
+    // spawn new python program. On data event, convert data (the formatted table) to a string and log it.
+    return new Promise((resolve, reject) => {
+        let py = spawn(pythonFile, args).on('error', (err) => {
+            reject("Improper python path.")
+        })
+        py.stdout.on('data', (data) => {
+            data = data.toString()
+            resolve(data)
+        })
+    })
+}
 
 function addToAllRoles() {
     return new Promise((resolve, reject) => {
