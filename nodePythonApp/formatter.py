@@ -17,12 +17,11 @@ import sys
 
 # create a new array and add the argument vectors to it.
 newArr = []
-longestStr = 0
+columnLength = 25
 for i in range(2, len(sys.argv)):
+    if len(sys.argv[i]) > columnLength:
+        sys.argv[i] = sys.argv[i][0:columnLength]
     newArr.append(sys.argv[i])
-    if len(sys.argv[i]) > longestStr:
-        longestStr = len(sys.argv[i])
-
 # Perform a function on the array of argument vectors to format into a table.
 def format(columnsArray):
     numColumns = int(sys.argv[1])
@@ -30,15 +29,15 @@ def format(columnsArray):
     rowStr = "\n"
     counter = 0
     for value in columnsArray:
-        rowStr += ("{0:^20}".format(value))
+        rowStr += ("{0:^25}".format(value))
         counter += 1
         if counter % numColumns == 0:
             print(rowStr)
             rowStr = ""
         if counter == numColumns:
-            rowStr += "_" * numColumns * 20 + "\n"
+            rowStr += "_" * numColumns * columnLength + "\n"
 
 format(newArr)
 
-# flush the print stream
+# flush the print stream - emits a data event, for which node.js is listening for
 sys.stdout.flush()

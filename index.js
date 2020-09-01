@@ -134,8 +134,8 @@ function viewEmployeesByDept() {
             }
         )
     }).catch((err) => {
-        reject(err);
         connection.end();
+        reject(err);
     })
 }
 
@@ -157,8 +157,8 @@ function viewEmployeesByManager() {
             }
         )
     }).catch((err) => {
-        reject(err);
         connection.end();
+        reject(err);
     })
 }
 
@@ -199,8 +199,8 @@ function getManagerName(objArr) {
             resolve(idNameObj);
         })
     }).catch((err) => {
-        reject(err);
         connection.end();
+        reject(err);
     })
 }
 
@@ -293,8 +293,8 @@ function addEmployee() {
             })
         })
     }).catch((err) => {
-        reject(err);
         connection.end();
+        reject(err);
     })
 }
 
@@ -341,8 +341,8 @@ function removeEmployee() {
             })
         })
     }).catch((err) => {
-        reject(err);
         connection.end();
+        reject(err);
     })
 }
 
@@ -390,8 +390,8 @@ function updateEmpRole() {
             })
         })
     }).catch((err) => {
-        reject(err);
         connection.end();
+        reject(err);
     })
 }
 
@@ -429,8 +429,8 @@ function updateEmpManager() {
             })
         })
     }).catch((err) => {
-        reject(err);
         connection.end();
+        reject(err);
     })
 }
 
@@ -441,8 +441,8 @@ function getAllRoles() {
             resolve(data);
         })
     }).catch((err) => {
-        reject(err);
         connection.end();
+        reject(err);
     })
 }
 
@@ -454,8 +454,8 @@ function getAllDepartments() {
             resolve(data);
         })
     }).catch((err) => {
-        reject(err);
         connection.end();
+        reject(err);
     })
 }
 
@@ -482,7 +482,7 @@ function formatDataTable(columns) {
         // use a different function to print the table, depending on whether python is installed or not.
         if (pythonInstalled) {
             // different terminal commands to open python.
-            let pythonFilenames = ["python3", "py", "python"]
+            let pythonFilenames = ["py", "python3", "python"]
             let pythonFile = 0;
             spawnPython(pythonFilenames[pythonFile], args).then(data => {
                 resolve(data);
@@ -497,44 +497,84 @@ function formatDataTable(columns) {
                     spawnPython(pythonFilenames[pythonFile], args).then(data => {
                         resolve(data);
                     }).catch((err) => {
-                        reject("Error: Could not find python filepath.");
+                        reject("Error: Could not find python filepath. Changing configuration to use JavaScript instead.");
                     })
                 })
             })
         }
         
-        // if python is not installed, can still use the same args list
+        // if python is not installed, can still use the same args list.
+        // This code block is roughly equivalent to the code in the formatter.py file
         if (!pythonInstalled) {
             let columnsString = "";
-            for (let i = 0, j = columns.length; i < j; i++) {
-                columnsString += columns[i] + ""
+            columnCounter = 0;
+            // console.log(args)
+            // args[1] is the number of columns. starting at args[2] is the data to go in each column
+            let rowStr = "";
+            let columnLength = 25;
+            for (let i = 2, j = args.length; i < j; i++) {
+                let truncatedArg = args[i].toString().slice(0, columnLength);
+                rowStr += truncatedArg;
+                // console.log(rowStr)
+                let remainingLength = columnLength - truncatedArg.length;
+                for (let i = 0; i < remainingLength; i++) {
+                    rowStr += " ";
+                }
+                rowStr += " ";
+                // console.log(rowStr)
+                columnCounter++;
+                if (columnCounter % Number(args[1]) === 0) {
+                    rowStr += "\n"
+                }
+                if (columnCounter === Number(args[1])) {
+                    headerStr = ""
+                    for (let i = 0; i < Number(args[1]); i++) {
+                        for (let j = 0; j < columnLength; j++) {
+                            headerStr += "_";
+                        }
+                    }
+                    headerStr += "\n";
+                    rowStr += headerStr;
+                }
             }
-            resolve("whee")
+            resolve(rowStr)
         }
     }).catch((err) => {
         // if cannot find python, try again without python
-        if (err === "Error: Could not find python filepath.") {
+        if (err === "Error: Could not find python filepath. Changing configuration to use JavaScript instead.") {
             console.log(err);
             pythonInstalled = false;
             formatDataTable(columns)
         }
         else {
-            reject(err);
             connection.end();
+            reject(err);
         }
     })
 }
 
+/** Spawn new python program designed to accept an array of arguments and format into a table.
+ * On data event, return promised data (the formatted table) as a string
+ * @param {array} args : An array in the format [python_script_name, number of columns, column data ...,]
+ * @param {string} pythonFile : The command to access python in a terminal. This is usually "python3", "python", or "py"*/
 function spawnPython(pythonFile, args) {
-    // spawn new python program. On data event, convert data (the formatted table) to a string and log it.
     return new Promise((resolve, reject) => {
         let py = spawn(pythonFile, args).on('error', (err) => {
-            reject("Improper python path.")
+            reject("Improper python path.");
         })
+        let found = false;
         py.stdout.on('data', (data) => {
-            data = data.toString()
-            resolve(data)
+            data = data.toString();
+            found = true;
+            resolve(data);
         })
+        // If system hangs due to permission error, etc, wait to see if python file has been found before returning promise rejection
+        setTimeout(() => {
+            if (!found) {
+                console.log("Could not find python filepath. Searching...")
+                reject("Improper python path.");
+            }
+        }, 1500);
     })
 }
 
@@ -565,8 +605,8 @@ function addToAllRoles() {
             })
         })
     }).catch((err) => {
-        reject(err);
         connection.end();
+        reject(err);
     })
 }
 
@@ -587,8 +627,8 @@ function addDepartment() {
             })
         })
     }).catch((err) => {
-        reject(err);
         connection.end();
+        reject(err);
     })
 }
 
