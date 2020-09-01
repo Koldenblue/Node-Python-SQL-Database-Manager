@@ -108,6 +108,14 @@ addDeptQuestions = [
     name: "dept_name"
   }
 ]
+
+pythonQuestion = [
+  {
+    type: "confirm",
+    message: "Do you have python 3 installed and would you like to use python for the table formatting?",
+    name: "python"
+  }
+]
 module.exports = {
   initQuestions,
   addEmpQuestions,
@@ -116,5 +124,6 @@ module.exports = {
   updateEmpManagerQuestions1,
   updateEmpManagerQuestions2,
   addRoleQuestions,
-  addDeptQuestions
+  addDeptQuestions,
+  pythonQuestion
 }

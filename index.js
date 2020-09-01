@@ -1,8 +1,11 @@
 let { initQuestions, addEmpQuestions, removeEmpQuestions, updateQuestions, 
     updateEmpManagerQuestions1, updateEmpManagerQuestions2, addRoleQuestions,
-    addDeptQuestions } = require("./questions.js");
+    addDeptQuestions, pythonQuestion } = require("./questions.js");
 const inquirer = require("inquirer");
 const connection = require("./app/config/connection")
+const { spawn } = require("child_process");
+
+let pythonInstalled = false;    // tracks whether user has python 3 installed
 
 
 /** searches database. Finds column, choice and 'id', from a table.
@@ -31,8 +34,17 @@ function createChoiceArray(table, ...choice) {
     })
 }
 
+async function pythonAsk() {
+    pythonAnswer = await inquirer.prompt(pythonQuestion);
+    pythonInstalled = pythonAnswer.python;
+}
 
-initAsk();
+connection.connect(function(err) {
+    if (err) throw err;
+    console.log("connected as id " + connection.threadId + "\n");
+    pythonAsk().then(() => initAsk());
+});
+
 /** Initial menu, stores the answer in the variable 'answer'.
  Then directs user to new questions depending on the answer. */
 function initAsk() {
@@ -414,10 +426,27 @@ function getAllDepartments() {
 }
 
 
-function formatDataTable(...columnNames) {
-    let columnsString = "";
-    for (let i = 0, j = columnNames.length; i < j; i++) {
-        columnsString += columnNames[i] + ""
+function formatDataTable(...columns) {
+
+    if (pythonInstalled) {
+        // add columns array to argument vectors to be passed to python
+        let args = ["./nodePythonApp/formatter.py"]
+        for (let elem of columnNames) {
+            args.push(elem);
+        }
+        // spawn new python program. On data event, convert data (the formatted table) to a string and log it.
+        let py = spawn("py", args);
+        py.stdout.on('data', (data) => {
+            data = data.toString()
+            console.log(data)
+        })
+    }
+
+    else {
+        let columnsString = "";
+        for (let i = 0, j = columnNames.length; i < j; i++) {
+            columnsString += columnNames[i] + ""
+        }
     }
 }
 
