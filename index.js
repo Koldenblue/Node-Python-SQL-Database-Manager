@@ -5,7 +5,6 @@ const inquirer = require("inquirer");
 const connection = require("./app/config/connection")
 
 
-
 /** searches database. Finds column, choice and 'id', from a table.
  * @param {string} table : the name of a table.
  * @param {string} choice : The name of one or more columns to add to the array.
@@ -31,8 +30,7 @@ function createChoiceArray(table, ...choice) {
         })
     })
 }
-// let arrayPromise = createChoiceArray("role", "title")
-// arrayPromise.then((data) => console.log(data[0]["id"]))
+
 
 initAsk();
 /** Initial menu, stores the answer in the variable 'answer'.
@@ -101,6 +99,9 @@ function viewEmployeesByDept() {
                 resolve(data);
             }
         )
+    }).catch((err) => {
+        reject(err);
+        connection.end();
     })
 }
 
@@ -110,11 +111,14 @@ function viewEmployeesByManager() {
         connection.query("SELECT first_name, last_name, manager_id FROM employee"
             + " ORDER BY manager_id;",
             (err, data) => {
-                if (err) reject(err);
+                if (err) throw err;
                 console.log(data);
                 resolve(data);
             }
         )
+    }).catch((err) => {
+        reject(err);
+        connection.end();
     })
 }
 
@@ -130,13 +134,16 @@ function getManagerName(...manager_id) {
     query += ";";
     return new Promise((resolve, reject) => {
         connection.query(query, (err, data) => {
-            if (err) reject(err);
+            if (err) throw err;
             data.forEach(elem => {
                 let wholeName = elem["first_name"] + " " + elem["last_name"];
                 elem['wholeName'] = wholeName;
             })
             resolve(data);
         })
+    }).catch((err) => {
+        reject(err);
+        connection.end();
     })
 }
 
@@ -229,6 +236,9 @@ function addEmployee() {
                 )
             })
         })
+    }).catch((err) => {
+        reject(err);
+        connection.end();
     })
 }
 
@@ -250,6 +260,7 @@ function getEmployeeNamesArray() {
         });
     })
 }
+
 // Also need to check if that employee manages anyone
 function removeEmployee() {
     return new Promise(function(resolve, reject) {
@@ -273,8 +284,12 @@ function removeEmployee() {
                 resolve();
             })
         })
+    }).catch((err) => {
+        reject(err);
+        connection.end();
     })
 }
+
 
 function updateEmpRole() {
     return new Promise(function(resolve, reject) {
@@ -318,6 +333,9 @@ function updateEmpRole() {
                 })
             })
         })
+    }).catch((err) => {
+        reject(err);
+        connection.end();
     })
 }
 
@@ -362,11 +380,11 @@ function updateEmpManager() {
                 })
             })
         })
+    }).catch((err) => {
+        reject(err);
+        connection.end();
     })
 }
-
-
-allRoles = [];
 
 function getAllRoles() {
     return new Promise((resolve, reject) => {
@@ -375,8 +393,12 @@ function getAllRoles() {
             console.log(data)
             resolve();
         })
+    }).catch((err) => {
+        reject(err);
+        connection.end();
     })
 }
+
 
 function getAllDepartments() {
     return new Promise((resolve, reject) => {
@@ -385,12 +407,18 @@ function getAllDepartments() {
             console.log(data)
             resolve(data);
         })
+    }).catch((err) => {
+        reject(err);
+        connection.end();
     })
 }
 
 
-function formatDataTable(...dataObjects) {
-
+function formatDataTable(...columnNames) {
+    let columnsString = "";
+    for (let i = 0, j = columnNames.length; i < j; i++) {
+        columnsString += columnNames[i] + ""
+    }
 }
 
 /** if a role already exists. If not, adds it to the allRoles array. */
@@ -429,6 +457,9 @@ function addToAllRoles() {
                 })
             })
         })
+    }).catch((err) => {
+        reject(err);
+        connection.end();
     })
 }
 
