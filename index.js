@@ -448,7 +448,20 @@ function removeFromAllRoles() {
 }
 
 function addDepartment() {
-
+    return new Promise((resolve, reject) => {
+        inquirer.prompt(addDeptQuestions, (answer) => {
+            return answer;
+        }).then(answer => {
+            connection.query("INSERT INTO department (dept_name) VALUES (?)", answer.dept_name, (err, data) => {
+                if (err) throw err;
+                console.log(data);
+                resolve(data);
+            })
+        })
+    }).catch((err) => {
+        reject(err);
+        connection.end();
+    })
 }
 
 function removeDepartment() {
