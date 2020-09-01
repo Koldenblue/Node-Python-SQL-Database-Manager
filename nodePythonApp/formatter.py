@@ -15,19 +15,28 @@ import sys
 
 # create a new array and add the argument vectors to it.
 newArr = []
-for i in range(1, len(sys.argv)):
+longestStr = 0
+for i in range(2, len(sys.argv)):
     newArr.append(sys.argv[i])
+    if len(sys.argv[i]) > longestStr:
+        longestStr = len(sys.argv[i])
 
-# Perform a function on the array of argument vectors.
+# Perform a function on the array of argument vectors to format into a table.
 def format(columnsArray):
-    rowStr = ""
-    # print(columnsArray)
+    numColumns = int(sys.argv[1])
+
+    rowStr = "\n"
+    counter = 0
     for value in columnsArray:
         rowStr += ("{0:^20}".format(value))
-    return rowStr
+        counter += 1
+        if counter % numColumns == 0:
+            print(rowStr)
+            rowStr = ""
+        if counter == numColumns:
+            rowStr += "_" * numColumns * 20 + "\n"
 
-formatted = format(newArr)
-print(formatted)
+format(newArr)
 
 # flush the print stream
 sys.stdout.flush()

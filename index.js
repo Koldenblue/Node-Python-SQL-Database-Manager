@@ -52,7 +52,9 @@ function initAsk() {
     inquirer.prompt(initQuestions).then(function(answer) {
         switch (answer.manageChoice) {
             case "View all employees by department":
-                viewEmployeesByDept().then(initAsk);
+                viewEmployeesByDept().then(data => {
+                    formatDataTable(data)
+                   }).then(initAsk);
                 break;
             case "View all employees by manager":
                 viewEmployeesByManager().then(initAsk);
@@ -107,8 +109,14 @@ function viewEmployeesByDept() {
             + " ORDER BY department.dept_name;",
             (err, data) => {
                 if (err) throw err;
-                console.log(data);
-                resolve(data);
+                getManagerName(data).then(managerIdArray => {
+                    data.forEach(elem => {
+                        elem["manager_name"] = managerIdArray[elem["manager_id"]];
+                        elem["manager_name"] === undefined ? elem["manager_name"] = "None" : null;
+                        delete elem.manager_id;
+                    })
+                    resolve(data);
+                })
             }
         )
     }).catch((err) => {
@@ -134,16 +142,28 @@ function viewEmployeesByManager() {
     })
 }
 
-/** returns a promise that gets a manager's name, based on their id */
-function getManagerName(...manager_id) {
-    let query = "SELECT first_name, last_name, manager_id, id FROM employee where id = ";
-    for (let i = 0, j = manager_id.length; i < j; i++) {
-        query += manager_id[i];
+/** returns a promise that gets a manager's name, based on their id
+ * The resolved promise data will be of the format { id : wholeName, id : wholeName, ...}
+ * @param {Array} objArr : an array of objects, each of which MUST contain a manager_id value. */
+function getManagerName(objArr) {
+    // create an array consisting of all manager ids
+    managerIdArray = [];
+    for (let elem of objArr) {
+        elem["manager_id"] !== null ? managerIdArray.push(elem["manager_id"]) : null;
+    }
+
+    // query the names corresponding to all manager ids
+    let query = "SELECT first_name, last_name, id FROM employee where id = ";
+    for (let i = 0, j = managerIdArray.length; i < j; i++) {
+        query += managerIdArray[i];
+        // if not yet at final element, add in an OR statement
         if (i < j - 1) {
             query += " OR id = "
         }
     }
     query += ";";
+
+    // query for the names of the managers.
     return new Promise((resolve, reject) => {
         connection.query(query, (err, data) => {
             if (err) throw err;
@@ -151,7 +171,12 @@ function getManagerName(...manager_id) {
                 let wholeName = elem["first_name"] + " " + elem["last_name"];
                 elem['wholeName'] = wholeName;
             })
-            resolve(data);
+            // create an object with employee ids as keys, and whole names as values.
+            let idNameObj = {};
+            data.forEach(elem => {
+                idNameObj[elem["id"]] = elem["wholeName"];
+            })
+            resolve(idNameObj);
         })
     }).catch((err) => {
         reject(err);
@@ -426,14 +451,39 @@ function getAllDepartments() {
 }
 
 
-function formatDataTable(...columns) {
 
-    if (pythonInstalled) {
-        // add columns array to argument vectors to be passed to python
-        let args = ["./nodePythonApp/formatter.py"]
-        for (let elem of columnNames) {
-            args.push(elem);
+// },
+// RowDataPacket {
+//   first_name: 'Bart',
+//   last_name: 'Simpson',
+//   title: 'Fire Starter',
+//   salary: 40000.25,
+//   dept_name: 'bouncehouses',
+//   manager_name: 'None'
+// }
+// ]
+function formatDataTable(columns) {
+
+    // add columns array to argument vectors to be passed to python
+    let args = ["./nodePythonApp/formatter.py"]
+    console.log(columns)
+    for (let columnName in columns[0]) {
+        args.push(columnName)
+    }
+    numColumns = args.length - 1;
+    args.splice(1, 0, numColumns)
+    // now args is the python filename, the number of columns, plus a list of the column names
+
+    // finally, add info for each object in the column (an employee, for example) to args list
+    for (let obj of columns) {
+        for (let key in obj) {
+            args.push(obj[key])
         }
+    }
+
+    // use a different function to print the table, depending on whether python is installed or not.
+    if (pythonInstalled) {
+        // Next add column info, one column at a time.
         // spawn new python program. On data event, convert data (the formatted table) to a string and log it.
         let py = spawn("py", args);
         py.stdout.on('data', (data) => {
@@ -442,6 +492,7 @@ function formatDataTable(...columns) {
         })
     }
 
+    // if python is not installed, can still use the same args list
     else {
         let columnsString = "";
         for (let i = 0, j = columnNames.length; i < j; i++) {
