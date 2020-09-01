@@ -412,25 +412,17 @@ function updateEmpManager() {
                     elem["wholeName"] !== answer.name ? updateEmpManagerQuestions2[0].choices.push(elem["wholeName"]) : null;
                 }
                 inquirer.prompt(updateEmpManagerQuestions2, answer2 => {
-                    console.log(answer2)
                     return (answer2)
                 }).then(answer2 => {
-                    console.log("ASDA")
-                    console.log(arr)
-                    console.log("SDFSDF")
-                    console.log(answer2)
-                    console.log(answer)
                     let managerID;
                     let empID;
                     for (let elem of arr) {
                         elem["wholeName"] === answer.name ? empID = elem["id"] : null;
                         elem["wholeName"] === answer2.manager ? managerID = elem["id"] : null;
                     }
-                    console.log(empID)
-                    console.log(managerID)
                     connection.query("UPDATE employee SET manager_id = ? WHERE id = ?", [managerID, empID], (err, data) => {
                         if (err) throw err;
-                        console.log(data);
+                        console.log(`Manager for ${answer.name} updated to ${answer2.manager}`);
                         resolve();
                     })
                 })

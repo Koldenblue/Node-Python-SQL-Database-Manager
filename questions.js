@@ -112,7 +112,7 @@ addDeptQuestions = [
 pythonQuestion = [
   {
     type: "confirm",
-    message: "Do you have python 3 installed and would you like to use python for the table formatting?",
+    message: "Do you have python installed and would you like to use python for the table formatting?",
     name: "python"
   }
 ]
