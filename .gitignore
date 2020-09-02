@@ -6,7 +6,11 @@ node_modules/
 Develop/**
 develop/**
 database-manager.code-workspace
-
+Role_class.js
+SQLSelect_class.js
+Employee_class.js
+async-refactor.js
+menu.js
 
 # Logs
 logs

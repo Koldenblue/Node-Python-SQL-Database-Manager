@@ -3,42 +3,11 @@ let { initQuestions, addEmpQuestions, removeEmpQuestions, updateQuestions,
     addDeptQuestions, pythonQuestion, removeRoleQuestion, removeDeptQuestion } = require("./questions.js");
 const inquirer = require("inquirer");
 const connection = require("./app/config/connection")
-const { spawn } = require("child_process");
+const { spawn } = require("child_process");     // for connecting to python file
 
 let pythonInstalled = false;    // tracks whether user has python 3 installed
 
-
-/** searches database. Finds column, choice and 'id', from a table.
- * @param {string} table : the name of a table.
- * @param {string} choice : The name of one or more columns to add to the array.
- * Returns a promise to put all entries in that column into an array, for later use by inquirer.
- * The returned data contains objects, accessible through data[i][choice] and data[i]["id"] */
-function createChoiceArray(table, ...choice) {
-    return new Promise(function(resolve, reject) {
-        let query = "SELECT ";
-        for (let i = 0, j = choice.length; i < j; i++) {
-            query += choice[i] + ", "
-        }
-        query += "id FROM " + table + ";";
-        connection.query(query, (err, data) => {
-            if (err) {console.error("choice array error!"); console.error(err); reject(err);}
-            choiceArray = [];
-            // console.log("data is:")
-            // console.log(data)
-            for (let i = 0, j = data.length; i < j; i++) {
-                choiceArray.push(data[i]);
-            }
-            // console.log(choiceArray)
-            resolve(choiceArray);
-        })
-    })
-}
-
-async function pythonAsk() {
-    pythonAnswer = await inquirer.prompt(pythonQuestion);
-    pythonInstalled = pythonAnswer.python;
-}
-
+// Initialize program.
 connection.connect(function(err) {
     if (err) throw err;
     console.log("connected as id " + connection.threadId + "\n");
@@ -46,12 +15,19 @@ connection.connect(function(err) {
     pythonAsk().then(() => initAsk());
 });
 
-/** Initial menu, stores the answer in the variable 'answer'.
- Then directs user to new questions depending on the answer. */
+/** Sets the pythonInstalled bool to true or false, depending on user input. */
+async function pythonAsk() {
+    pythonAnswer = await inquirer.prompt(pythonQuestion);
+    pythonInstalled = pythonAnswer.python;
+}
+
+/** Initial menu. Directs user to new questions depending on the answer.
+ * This function calls itself after each operation (unless user selects 'Quit'). */
 function initAsk() {
     console.log(`\n=========================================\n`)
     inquirer.prompt(initQuestions).then(function(answer) {
         switch (answer.manageChoice) {
+            // if data is returned, use formatDataTable() to arrange the data into a table, then print into log.
             case "View all employees by department":
                 viewEmployeesByDept().then(data => {
                     formatDataTable(data)
@@ -115,6 +91,35 @@ function initAsk() {
     })
 }
 
+/** Basic search query. Searches database. SELECTS ...choice, id FROM table.
+ * @param {string} table : the name of a table.
+ * @param {string} choice : The name of one or more columns to add to the array.
+ * Returns a promise for later use by inquirer.
+ * The returned data array contains objects, accessible through data[i][choice] and data[i]["id"] */
+function createChoiceArray(table, ...choice) {
+    return new Promise(function(resolve, reject) {
+        // form query using parameters
+        let query = "SELECT ";
+        for (let i = 0, j = choice.length; i < j; i++) {
+            query += choice[i] + ", ";
+        }
+        // also query the id
+        query += "id FROM " + table + ";";
+        connection.query(query, (err, data) => {
+            if (err) throw err;
+            // add queried objects to an array
+            choiceArray = [];
+            for (let i = 0, j = data.length; i < j; i++) {
+                choiceArray.push(data[i]);
+            }
+            resolve(choiceArray);
+        })
+    }).catch((err) => {
+        connection.end();
+        reject(err);
+    })
+}
+
 /** View all employees, ordered by department name. */
 function viewEmployeesByDept() {
     return new Promise(function(resolve, reject) {
@@ -124,10 +129,12 @@ function viewEmployeesByDept() {
             + " ORDER BY department.dept_name;",
             (err, data) => {
                 if (err) throw err;
+                // run function to find managers based on manager_id field
                 getManagerName(data).then(managerIdArray => {
                     data.forEach(elem => {
                         elem["manager_name"] = managerIdArray[elem["manager_id"]];
                         elem["manager_name"] === undefined ? elem["manager_name"] = "None" : null;
+                        // manager_id is deleted so that it will not be displayed in formatted table
                         delete elem.manager_id;
                     })
                     resolve(data);
@@ -147,6 +154,7 @@ function viewEmployeesByManager() {
             + " ORDER BY manager_id;",
             (err, data) => {
                 if (err) throw err;
+                // run function to find managers based on manager_id field
                 getManagerName(data).then(managerIdArray => {
                     data.forEach(elem => {
                         elem["manager_name"] = managerIdArray[elem["manager_id"]];
@@ -163,7 +171,7 @@ function viewEmployeesByManager() {
     })
 }
 
-/** returns a promise that gets a manager's name, based on their id
+/** returns a promise that gets a manager's full name, based on their id
  * The resolved promise data will be of the format { id : wholeName, id : wholeName, ...}
  * @param {Array} objArr : an array of objects, each of which MUST contain a manager_id value. */
 function getManagerName(objArr) {
@@ -179,7 +187,7 @@ function getManagerName(objArr) {
         query += managerIdArray[i];
         // if not yet at final element, add in an OR statement
         if (i < j - 1) {
-            query += " OR id = "
+            query += " OR id = ";
         }
     }
     query += ";";
@@ -205,63 +213,26 @@ function getManagerName(objArr) {
     })
 }
 
-
-/** Gets an array of all titles and managers, along with their ids. Stores these separate arrays
- * in a single object. */
-function getEmployeeInfo() {
-    // for each of the above, run the create choice array function
-    return new Promise((resolve, reject) => {
-        let titlePromise = createChoiceArray("role", "title");
-        let managerPromise = getEmployeeNamesArray();
-        let roleArr;
-        let managerArr;
-        
-        // get the appropriate arrays of choices, before returning the promise for the choice array.
-        let choiceObj = {}
-        titlePromise.then((arr) => {
-            roleArr = arr;
-            choiceObj.roles = roleArr;
-            managerPromise.then(arr => {
-                // console.log(arr)
-                managerArr = arr;
-                choiceObj.managers = managerArr;
-                // console.log("choice obj")
-                // console.log(choiceObj)
-            }).then(() => {
-                resolve(choiceObj)
-            });
-        });
-    });
-}
-
-/** Given a obj consisting of arrays from createChoiceArray(), containing roles, depts, and managers, 
- * populates the choice arrays of the addEmpQuestions array. */
-function populateAddChoices(choiceArrays) {
-    addEmpQuestions[2].choices = [];
-    addEmpQuestions[4].choices = [];
-    for (let elem of choiceArrays.roles) {
-        addEmpQuestions[2].choices.push(elem.title);
-    }
-    for (let elem of choiceArrays.managers) {
-        addEmpQuestions[4].choices.push(elem.wholeName);
-    }
-}
-
-/** Promise to add an employee to the database. */
+/** Promise to add an employee to the database. Several queries must be made, since
+ * the questions in the inquirer choices are updated according to the database. */
 function addEmployee() {
     return new Promise(function(resolve, reject) {
         // first get the choice arrays for departments, roles, and managers.
         getEmployeeInfo().then((choiceArrays) => {
-            console.log("choice arrays - choiceObj from getEmployeeInfo()")
-            console.log(choiceArrays)
             // edit the inquirer questions to include the choice arrays
-            populateAddChoices(choiceArrays);
+            addEmpQuestions[2].choices = [];
+            addEmpQuestions[4].choices = [];
+            for (let elem of choiceArrays.roles) {
+                addEmpQuestions[2].choices.push(elem.title);
+            }
+            for (let elem of choiceArrays.managers) {
+                addEmpQuestions[4].choices.push(elem.wholeName);
+            }
 
             // get inquirer answers, and create a new Employee object based on the answers.
             inquirer.prompt(addEmpQuestions).then(answer => {
                 // if the user didn't pick a manager, set to null.
                 answer.managerName === undefined ? answer.managerName = null : null;
-                console.log(answer);
 
                 // after getting the user answers, get the ids of the titles, depts, and managers
                 for (let elem of choiceArrays.roles) {
@@ -281,13 +252,12 @@ function addEmployee() {
                 else {
                     var managerID = null;
                 }
-
-                // Finally, the employee table must be updated. To do this, the database must be queried for department and manager ids.
+                // Finally, the employee table must be updated.
                 connection.query("INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)",
                     [answer.firstName, answer.lastName, roleID, managerID],
                     (err, data) => {
                         if (err) throw err;
-                        // console.log(data);
+                        console.log(`Adding ${answer["firstName"]} ${answer["lastName"]} to database.`)
                         resolve();
                     }
                 )
@@ -299,6 +269,32 @@ function addEmployee() {
     })
 }
 
+/** Gets an array of all role titles and managers, along with ids.
+ * These separate arrays are stored in a single object.
+ * This object is used for the inquirer questions in addEmployee(). */
+function getEmployeeInfo() {
+    return new Promise((resolve, reject) => {
+        let titlePromise = createChoiceArray("role", "title");
+        let managerPromise = getEmployeeNamesArray();
+        let roleArr;
+        let managerArr;
+
+        // get promised title, manager, and id data, then store in a single object.
+        let choiceObj = {};
+        titlePromise.then((arr) => {
+            roleArr = arr;
+            choiceObj.roles = roleArr;
+            managerPromise.then(arr => {
+                managerArr = arr;
+                choiceObj.managers = managerArr;
+            }).then(() => {
+                resolve(choiceObj);
+            });
+        });
+    });
+}
+
+
 /** Returns a promise to get all employee first, last, whole names, as well as ids
  * Each employee is stored as an object in an array, with the properties accessible by 
  * array[i]["first_name"], ["last_name"], ["wholeName"], ["id"] */
@@ -306,8 +302,6 @@ function getEmployeeNamesArray() {
     return new Promise((resolve, reject) => {
         // first get employee info from the database
         createChoiceArray("employee", "first_name", "last_name").then(empArray => {
-            // console.log("the employee first name and last names array")
-            // console.log(empArray);
 
             // Concatenate the first and last names of each employee, and add to the employee objects returned from the database
             empArray.forEach(elem => {
@@ -318,7 +312,7 @@ function getEmployeeNamesArray() {
     })
 }
 
-// Also need to check if that employee manages anyone
+/** Remove an employee from the database. */
 function removeEmployee() {
     return new Promise(function(resolve, reject) {
         getEmployeeNamesArray().then(empArray => {
@@ -335,6 +329,7 @@ function removeEmployee() {
                         connection.query("DELETE FROM employee WHERE ?;",
                             { id : elem["id"]},
                             (err) => {if (err) throw err});
+                            console.log(`${answer.name} removed from employee database.`)
                         break;
                     }
                 }
@@ -347,27 +342,26 @@ function removeEmployee() {
     })
 }
 
-
+/** Prompts user for input on updating the role of an employee */
 function updateEmpRole() {
     return new Promise(function(resolve, reject) {
+        // First get all employee names, for use in the inquirer questions
         getEmployeeNamesArray().then(empArray => {
             updateQuestions[0].choices = ["Cancel"];
             empArray.forEach(elem => {
                 updateQuestions[0].choices.push(elem["wholeName"]);
             })
-            // next get roles
+            // next get roles for use in inquirer questions
             createChoiceArray("role", "title").then(choiceArr => {
-                console.log(choiceArr);
                 updateQuestions[1].choices = [];
                 for (let elem of choiceArr) {
                     updateQuestions[1].choices.push(elem["title"])
                 }
                 return choiceArr;
             }).then(choiceArr => {
+                // finally ask questions
                 inquirer.prompt(updateQuestions).then(answer => {
-                    console.log(answer);
-                    console.log(empArray)
-                    console.log(choiceArr)
+                    // find the ids of the employee and the role, based on the answers
                     for (let elem of empArray) {
                         if (answer.name === elem["wholeName"]) {
                             var empID = elem["id"];
@@ -379,11 +373,12 @@ function updateEmpRole() {
                             var roleID = elem["id"];
                         }
                     }
+                    // update the database, using the ids
                     connection.query("UPDATE employee SET role_id = ? WHERE id = ?",
                         [roleID, empID],
                         (err, data) => {
                             if (err) throw err;
-                            console.log(data);
+                            console.log(`Role for ${answer.name} updated to ${answer.role}.`);
                             resolve();
                         }
                     )
@@ -396,20 +391,26 @@ function updateEmpRole() {
     })
 }
 
-
+/** Updates employee managers by querying employee table. */
 function updateEmpManager() {
     return new Promise(function(resolve, reject) {
         let empPromise = getEmployeeNamesArray();
+        // first get the employee names, in order to update the inquirer questions.
+        // Reset the inquirer choices array before updating it.
+        updateEmpManagerQuestions1[0].choices = [];
         empPromise.then(arr => {
             for (let elem of arr) {
                 updateEmpManagerQuestions1[0].choices.push(elem["wholeName"]);
             }
-            return arr
+            return arr;
         }).then((arr) => {
             inquirer.prompt(updateEmpManagerQuestions1, answer => {
                 return answer;
             }).then(answer => {
+                // populate the choice array for the second question ("who is the manager?")
+                updateEmpManagerQuestions2[0].choices = []; 
                 for (let elem of arr) {
+                    // an employee cannot be their own manager:
                     elem["wholeName"] !== answer.name ? updateEmpManagerQuestions2[0].choices.push(elem["wholeName"]) : null;
                 }
                 inquirer.prompt(updateEmpManagerQuestions2, answer2 => {
@@ -417,10 +418,12 @@ function updateEmpManager() {
                 }).then(answer2 => {
                     let managerID;
                     let empID;
+                    // find the ids for the names the user picked
                     for (let elem of arr) {
                         elem["wholeName"] === answer.name ? empID = elem["id"] : null;
                         elem["wholeName"] === answer2.manager ? managerID = elem["id"] : null;
                     }
+                    // finally, use the ids to update the database
                     connection.query("UPDATE employee SET manager_id = ? WHERE id = ?", [managerID, empID], (err, data) => {
                         if (err) throw err;
                         console.log(`Manager for ${answer.name} updated to ${answer2.manager}`);
@@ -435,6 +438,7 @@ function updateEmpManager() {
     })
 }
 
+/** query to retrieve all roles */
 function getAllRoles() {
     return new Promise((resolve, reject) => {
         connection.query("SELECT title, salary, department.dept_name FROM role"
@@ -448,7 +452,7 @@ function getAllRoles() {
     })
 }
 
-
+/** query to retrieve all departments */
 function getAllDepartments() {
     return new Promise((resolve, reject) => {
         connection.query("SELECT dept_name FROM department", (err, data) => {
@@ -461,31 +465,32 @@ function getAllDepartments() {
     })
 }
 
-/** Takes an array of objects and prints out a formatted table, with the object keys as the headers
+/** Takes an array of objects and returns them as a formatted table string, with the object keys as the headers
  * and the object values as the rows. All objects in the array must have the same keys.
- * @param {Array} columns: an array of objects, all of which must have the same keys. */
+ * This function uses python to format the table if it is installed. 
+ * If python is not installed or cannot be found, JavaScript is used instead.
+ * @param {Array} columns: an array of objects. All objects must have the same keys! */
 function formatDataTable(columns) {
     return new Promise((resolve, reject) => {
-        // add columns array to argument vectors to be passed to python
-        let args = ["./nodePythonApp/formatter.py"]
-        // console.log(columns)
+        let args = ["./nodePythonApp/formatter.py"]     // array of argument vectors for python
+        // add column names to argument vectors
         for (let columnName in columns[0]) {
             args.push(columnName)
         }
-        numColumns = args.length - 1;
+        // Add in the second argument vector as the number of columns to be formatted.
+        let numColumns = args.length - 1;
         args.splice(1, 0, numColumns)
-        // now args is the python filename, the number of columns, plus a list of the column names
-
-        // finally, add info for each object in the column (an employee, for example) to args list
+        // Now, args is the python filename, the number of columns, plus a list of the column names
+        // Finally, add info for each object in the column to args list. These will become the table rows.
         for (let obj of columns) {
             for (let key in obj) {
                 args.push(obj[key])
             }
         }
 
-        // use a different function to print the table, depending on whether python is installed or not.
+        // If python is installed, use python to format the table. If not, use JavaScript.
         if (pythonInstalled) {
-            // different terminal commands to open python.
+            // Different terminal commands to try and open python. These may vary from computer to computer.
             let pythonFilenames = ["py", "python3", "python"]
             let pythonFile = 0;
             spawnPython(pythonFilenames[pythonFile], args).then(data => {
@@ -510,28 +515,24 @@ function formatDataTable(columns) {
         // if python is not installed, can still use the same args list.
         // This code block is roughly equivalent to the code in the formatter.py file
         if (!pythonInstalled) {
-            let columnsString = "";
             columnCounter = 0;
-            // console.log(args)
             // args[1] is the number of columns. starting at args[2] is the data to go in each column
             let rowStr = "";
-            let columnLength = 25;
+            let columnLength = 25;      // the max width of a column in the table
             for (let i = 2, j = args.length; i < j; i++) {
                 let truncatedArg = args[i].toString().slice(0, columnLength);
                 rowStr += truncatedArg;
-                // console.log(rowStr)
                 let remainingLength = columnLength - truncatedArg.length;
                 for (let i = 0; i < remainingLength; i++) {
                     rowStr += " ";
                 }
                 rowStr += " ";
-                // console.log(rowStr)
                 columnCounter++;
                 if (columnCounter % Number(args[1]) === 0) {
                     rowStr += "\n"
                 }
                 if (columnCounter === Number(args[1])) {
-                    headerStr = ""
+                    let headerStr = ""
                     for (let i = 0; i < Number(args[1]); i++) {
                         for (let j = 0; j < columnLength; j++) {
                             headerStr += "_";
@@ -563,10 +564,12 @@ function formatDataTable(columns) {
  * @param {string} pythonFile : The command to access python in a terminal. This is usually "python3", "python", or "py"*/
 function spawnPython(pythonFile, args) {
     return new Promise((resolve, reject) => {
+        // run python using the command "<python> <argument vectors>"
         let py = spawn(pythonFile, args).on('error', (err) => {
             reject("Improper python path.");
         })
-        let found = false;
+        let found = false;  // bool that gets set to true once proper python installation is found.
+        // on data event emitted by python program, resolve promise.
         py.stdout.on('data', (data) => {
             data = data.toString();
             found = true;
@@ -582,8 +585,10 @@ function spawnPython(pythonFile, args) {
     })
 }
 
+/** Queries database for department to add a role to. Then gets user input for info on the new role. */
 function addToAllRoles() {
     return new Promise((resolve, reject) => {
+        // Present an array of department choices that the role could belong to.
         createChoiceArray("department", "dept_name").then(data => {
             addRoleQuestions[2].choices = [];
             for (let elem of data) {
@@ -591,25 +596,21 @@ function addToAllRoles() {
             }
             return data;
         }).then((data) => {
+            // get user input on the role
             inquirer.prompt(addRoleQuestions, answers => {
-                console.log(answers)
                 return answers;
             }).then(answers => {
+                // get id of department for use in query
                 let deptID;
                 for (let elem of data) {
-                    console.log(elem)
-                    console.log(answers)
                     if (elem["dept_name"] === answers["dept_name"]) {
                         deptID = elem["id"];
-                        console.log("CHANGED")
-
                         break;
                     }
                 }
-                console.log(deptID)
+                // change roles based on id
                 connection.query("INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)", [answers.title, answers.salary, deptID], (err, data) => {
                     if (err) throw err;
-                    console.log(data)
                     resolve();
                 })
             })
@@ -620,12 +621,10 @@ function addToAllRoles() {
     })
 }
 
-
+/** Queries database for all roles, then presents user with choice of roles to remove. */
 function removeFromAllRoles() {
     return new Promise(function(resolve, reject) {
         createChoiceArray("role", "title").then(roleArr => {
-            console.log(roleArr)
-            console.log("is the role array")
             // add the employee names to the inquirer choices, after resetting choices array
             removeRoleQuestion[0].choices = ["Cancel"];
             roleArr.forEach(elem => {
@@ -651,7 +650,7 @@ function removeFromAllRoles() {
     })
 }
 
-
+/** Asks question about department name, then inserts into database. */
 function addDepartment() {
     return new Promise((resolve, reject) => {
         inquirer.prompt(addDeptQuestions, (answer) => {
@@ -659,7 +658,6 @@ function addDepartment() {
         }).then(answer => {
             connection.query("INSERT INTO department (dept_name) VALUES (?)", answer.dept_name, (err, data) => {
                 if (err) throw err;
-                console.log(data);
                 resolve(data);
             })
         })
@@ -669,7 +667,7 @@ function addDepartment() {
     })
 }
 
-
+/** Queries database for all departments, then presents user with choice of departments to remove. */
 function removeDepartment() {
     return new Promise(function(resolve, reject) {
         createChoiceArray("department", "dept_name").then(deptArr => {
@@ -680,7 +678,7 @@ function removeDepartment() {
             })
             inquirer.prompt(removeDeptQuestion).then(answer => {
                 answer.dept_name === "Cancel" ? resolve() : null;
-                // find the role within the role array. Then delete that name from the database.
+                // find the department within the dept array. Then delete that dept from the database.
                 for (let elem of deptArr) {
                     if (answer.dept_name === elem["dept_name"]) {
                         connection.query("DELETE FROM department WHERE ?;",

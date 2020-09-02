@@ -22,8 +22,9 @@ for i in range(2, len(sys.argv)):
     if len(sys.argv[i]) > columnLength:
         sys.argv[i] = sys.argv[i][0:columnLength]
     newArr.append(sys.argv[i])
-# Perform a function on the array of argument vectors to format into a table.
+
 def format(columnsArray):
+    ''' Format an array of argument vectors to format into a table.'''
     numColumns = int(sys.argv[1])
 
     rowStr = "\n"
