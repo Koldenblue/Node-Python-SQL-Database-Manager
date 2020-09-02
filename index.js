@@ -1,6 +1,6 @@
 let { initQuestions, addEmpQuestions, removeEmpQuestions, updateQuestions, 
     updateEmpManagerQuestions1, updateEmpManagerQuestions2, addRoleQuestions,
-    addDeptQuestions, pythonQuestion } = require("./questions.js");
+    addDeptQuestions, pythonQuestion, removeRoleQuestion, removeDeptQuestion } = require("./questions.js");
 const inquirer = require("inquirer");
 const connection = require("./app/config/connection")
 const { spawn } = require("child_process");
@@ -42,6 +42,7 @@ async function pythonAsk() {
 connection.connect(function(err) {
     if (err) throw err;
     console.log("connected as id " + connection.threadId + "\n");
+    console.log("Make sure the employee database has been initialized and is in use!")
     pythonAsk().then(() => initAsk());
 });
 
@@ -222,7 +223,7 @@ function getEmployeeInfo() {
             choiceObj.roles = roleArr;
             managerPromise.then(arr => {
                 // console.log(arr)
-                managerArr = arr
+                managerArr = arr;
                 choiceObj.managers = managerArr;
                 // console.log("choice obj")
                 // console.log(choiceObj)
@@ -436,7 +437,8 @@ function updateEmpManager() {
 
 function getAllRoles() {
     return new Promise((resolve, reject) => {
-        connection.query("SELECT title, salary FROM role", (err, data) => {
+        connection.query("SELECT title, salary, department.dept_name FROM role"
+            + " JOIN department ON role.department_id = department.id;", (err, data) => {
             if (err) throw err;
             resolve(data);
         })
@@ -459,7 +461,9 @@ function getAllDepartments() {
     })
 }
 
-
+/** Takes an array of objects and prints out a formatted table, with the object keys as the headers
+ * and the object values as the rows. All objects in the array must have the same keys.
+ * @param {Array} columns: an array of objects, all of which must have the same keys. */
 function formatDataTable(columns) {
     return new Promise((resolve, reject) => {
         // add columns array to argument vectors to be passed to python
@@ -580,7 +584,7 @@ function spawnPython(pythonFile, args) {
 
 function addToAllRoles() {
     return new Promise((resolve, reject) => {
-        getAllDepartments().then(data => {
+        createChoiceArray("department", "dept_name").then(data => {
             addRoleQuestions[2].choices = [];
             for (let elem of data) {
                 addRoleQuestions[2].choices.push(elem["dept_name"]);
@@ -591,12 +595,18 @@ function addToAllRoles() {
                 console.log(answers)
                 return answers;
             }).then(answers => {
+                let deptID;
                 for (let elem of data) {
+                    console.log(elem)
+                    console.log(answers)
                     if (elem["dept_name"] === answers["dept_name"]) {
-                        var deptID = elem["id"];
+                        deptID = elem["id"];
+                        console.log("CHANGED")
+
                         break;
                     }
                 }
+                console.log(deptID)
                 connection.query("INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)", [answers.title, answers.salary, deptID], (err, data) => {
                     if (err) throw err;
                     console.log(data)
@@ -612,8 +622,35 @@ function addToAllRoles() {
 
 
 function removeFromAllRoles() {
-
+    return new Promise(function(resolve, reject) {
+        createChoiceArray("role", "title").then(roleArr => {
+            console.log(roleArr)
+            console.log("is the role array")
+            // add the employee names to the inquirer choices, after resetting choices array
+            removeRoleQuestion[0].choices = ["Cancel"];
+            roleArr.forEach(elem => {
+                removeRoleQuestion[0].choices.push(elem["title"]);
+            })
+            inquirer.prompt(removeRoleQuestion).then(answer => {
+                answer.title === "Cancel" ? resolve() : null;
+                // find the role within the role array. Then delete that name from the database.
+                for (let elem of roleArr) {
+                    if (answer.title === elem["title"]) {
+                        connection.query("DELETE FROM role WHERE ?;",
+                            { id : elem["id"]},
+                            (err) => {if (err) throw err});
+                        break;
+                    }
+                }
+                resolve();
+            })
+        })
+    }).catch((err) => {
+        connection.end();
+        reject(err);
+    })
 }
+
 
 function addDepartment() {
     return new Promise((resolve, reject) => {
@@ -632,6 +669,31 @@ function addDepartment() {
     })
 }
 
-function removeDepartment() {
 
+function removeDepartment() {
+    return new Promise(function(resolve, reject) {
+        createChoiceArray("department", "dept_name").then(deptArr => {
+            // add the dept names to the inquirer choices, after resetting choices array
+            removeDeptQuestion[0].choices = ["Cancel"];
+            deptArr.forEach(elem => {
+                removeDeptQuestion[0].choices.push(elem["dept_name"]);
+            })
+            inquirer.prompt(removeDeptQuestion).then(answer => {
+                answer.dept_name === "Cancel" ? resolve() : null;
+                // find the role within the role array. Then delete that name from the database.
+                for (let elem of deptArr) {
+                    if (answer.dept_name === elem["dept_name"]) {
+                        connection.query("DELETE FROM department WHERE ?;",
+                            { id : elem["id"]},
+                            (err) => {if (err) throw err});
+                        break;
+                    }
+                }
+                resolve();
+            })
+        })
+    }).catch((err) => {
+        connection.end();
+        reject(err);
+    })
 }

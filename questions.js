@@ -73,7 +73,7 @@ let updateEmpManagerQuestions1 = [
     choices: []
   }
 ]
-updateEmpManagerQuestions2 = [
+let updateEmpManagerQuestions2 = [
   {
     type: "list",
     message: "Who should the new manager be?",
@@ -82,7 +82,7 @@ updateEmpManagerQuestions2 = [
   }
 ]
 
-addRoleQuestions = [
+let addRoleQuestions = [
   {
     type: "input",
     message: "What is the title of the new role?",
@@ -101,7 +101,7 @@ addRoleQuestions = [
   }
 ]
 
-addDeptQuestions = [
+let addDeptQuestions = [
   {
     type: "input",
     message: "What is the name of the new department?",
@@ -109,13 +109,32 @@ addDeptQuestions = [
   }
 ]
 
-pythonQuestion = [
+let pythonQuestion = [
   {
     type: "confirm",
     message: "Do you have python installed and would you like to use python for the table formatting?",
     name: "python"
   }
 ]
+
+let removeRoleQuestion = [
+  {
+    type: "list",
+    message: "Which role would you like to remove?",
+    name: "title",
+    choices: []
+  }
+]
+
+let removeDeptQuestion = [
+  {
+    type: "list",
+    message: "Which department would you like to remove?",
+    name: "dept_name",
+    choices: []
+  }
+]
+
 module.exports = {
   initQuestions,
   addEmpQuestions,
@@ -125,5 +144,7 @@ module.exports = {
   updateEmpManagerQuestions2,
   addRoleQuestions,
   addDeptQuestions,
-  pythonQuestion
+  pythonQuestion,
+  removeRoleQuestion,
+  removeDeptQuestion
 }
