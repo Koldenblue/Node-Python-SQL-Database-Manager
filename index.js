@@ -465,6 +465,12 @@ function getAllDepartments() {
     })
 }
 
+// Different terminal commands to try and open python. These may vary from computer to computer.
+const pythonFilenames = ["py", "python3", "python"]
+// The array index to use from the above array (pythonFilenames). This variable is global so that it is 
+// stored persistently.
+let pythonFile = 0;
+
 /** Takes an array of objects and returns them as a formatted table string, with the object keys as the headers
  * and the object values as the rows. All objects in the array must have the same keys.
  * This function uses python to format the table if it is installed. 
@@ -490,9 +496,6 @@ function formatDataTable(columns) {
 
         // If python is installed, use python to format the table. If not, use JavaScript.
         if (pythonInstalled) {
-            // Different terminal commands to try and open python. These may vary from computer to computer.
-            let pythonFilenames = ["py", "python3", "python"]
-            let pythonFile = 0;
             spawnPython(pythonFilenames[pythonFile], args).then(data => {
                 resolve(data);
             })
@@ -546,7 +549,7 @@ function formatDataTable(columns) {
         }
     }).catch((err) => {
         // if cannot find python, try again without python
-        if (err === "Error: Could not find python filepath. Changing configuration to use JavaScript instead.") {
+        if (err === "Error: Could not find python filepath. Changing configuration to use JavaScript instead. Try again with new config.") {
             console.log(err);
             pythonInstalled = false;
             formatDataTable(columns)
@@ -558,6 +561,8 @@ function formatDataTable(columns) {
     })
 }
 
+let foundPython = false;  // bool that gets set to true once proper python installation is found. Global so that it is persistent.
+
 /** Spawn new python program designed to accept an array of arguments and format into a table.
  * On data event, return promised data (the formatted table) as a string
  * @param {array} args : An array in the format [python_script_name, number of columns, column data ...,]
@@ -568,17 +573,16 @@ function spawnPython(pythonFile, args) {
         let py = spawn(pythonFile, args).on('error', (err) => {
             reject("Improper python path.");
         })
-        let found = false;  // bool that gets set to true once proper python installation is found.
         // on data event emitted by python program, resolve promise.
         py.stdout.on('data', (data) => {
             data = data.toString();
-            found = true;
+            foundPython = true;
             resolve(data);
         })
         // If system hangs due to permission error, etc, wait to see if python file has been found before returning promise rejection
         setTimeout(() => {
-            if (!found) {
-                console.log("Could not find python filepath. Searching...")
+            if (!foundPython) {
+                console.log("Searching for python filepath...")
                 reject("Improper python path.");
             }
         }, 1500);
