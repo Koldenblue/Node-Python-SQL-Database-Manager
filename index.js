@@ -78,9 +78,12 @@ function initAsk() {
                 addDepartment().then(initAsk);
                 break;
             case "Remove department":
-                removeDepartment().then(initAsk);
+                removeDepartment().then(() => {
+                    initAsk();
+                });
                 break;
             case "Quit":
+                console.log("Exiting program.")
                 connection.end();
                 break;
             default:
@@ -641,7 +644,12 @@ function removeFromAllRoles() {
                     if (answer.title === elem["title"]) {
                         connection.query("DELETE FROM role WHERE ?;",
                             { id : elem["id"]},
-                            (err) => {if (err) throw err});
+                            (err) => {
+                                if (err.code === 'ER_ROW_IS_REFERENCED_2') {
+                                    console.log("Error! All employees in that role must first be removed.");
+                                }
+                                else if (err) throw err;
+                            });
                         break;
                     }
                 }
@@ -687,7 +695,12 @@ function removeDepartment() {
                     if (answer.dept_name === elem["dept_name"]) {
                         connection.query("DELETE FROM department WHERE ?;",
                             { id : elem["id"]},
-                            (err) => {if (err) throw err});
+                            (err) => {
+                                if (err.code === 'ER_ROW_IS_REFERENCED_2'){
+                                    console.log("Error! All roles in that department must first be deleted.");
+                                }
+                                else if (err); throw err;
+                            });
                         break;
                     }
                 }
@@ -695,7 +708,7 @@ function removeDepartment() {
             })
         })
     }).catch((err) => {
-        connection.end();
         reject(err);
+        connection.end();
     })
 }
